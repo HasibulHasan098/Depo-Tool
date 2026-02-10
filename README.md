@@ -1,14 +1,22 @@
-# Depo Tool
+<h1 align="center">Depo Tool</h1>
 
-Open Source · Built with Tauri
+<p align="center">Open Source · Built with Tauri</p>
 
-![Depo Tool Logo](public/logo.png)
+<p align="center">
+  <img src="public/logo.png" alt="Depo Tool Logo" width="220" />
+</p>
 
 Your games. Your rules.
 
 Depo Tool is the open-source alternative to Steam Tools. Add games to your Steam library seamlessly — safe, transparent, and community-driven.
 
-[Download Depo Tool](#release) [Lua files only](https://luagen.revobd.club/)
+<p align="center">
+  <a href="https://github.com/HasibulHasan098/Depo-Tool/releases/latest">Download Depo Tool</a>
+  ·
+  <a href="https://github.com/HasibulHasan098/Depo-Tool">View on GitHub</a>
+  ·
+  <a href="https://luagen.revobd.club/">Lua files only</a>
+</p>
 
 ## Highlights
 
