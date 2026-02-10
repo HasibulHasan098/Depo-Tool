@@ -109,7 +109,7 @@ Windows desktop.
 
 ## License
 
-MIT
+MIT License. See [MIT_LICENSE.txt](file:///d:/Downloads/Depo%20Tool/src-tauri/assets/MIT_LICENSE.txt).
 
 ## Warning
 
