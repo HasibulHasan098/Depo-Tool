@@ -3,8 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { listen } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
 import { Sidebar } from "./components/Sidebar";
-import { GameGrid } from "./components/GameGrid";
 import { DownloadStatus } from "./components/DownloadStatus";
 import { StorePage } from "./components/StorePage";
 import { LibraryPage } from "./components/LibraryPage";
@@ -13,6 +13,8 @@ import { GameInfo, DownloadProgress } from "@/types";
 import { Toaster, toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/components/ThemeProvider";
+import { Moon, Sun, Laptop } from "lucide-react";
 
 import { TitleBar } from "./components/TitleBar";
 
@@ -54,7 +56,7 @@ function parseRelease(release: any): ReleaseInfo {
   }
 
   const tagName = release.tag_name || "";
-  const version = tagName.replace(/^v/, "") || release.name?.replace(/^v/, "") || "1.0.0";
+  const version = tagName.replace(/^v/, "") || release.name?.replace(/^v/, "") || "1.0.1";
 
   return {
     version,
@@ -68,6 +70,8 @@ function parseRelease(release: any): ReleaseInfo {
 }
 
 function App() {
+  const { theme, setTheme } = useTheme();
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState("home");
   const [activeView, setActiveView] = useState<"list" | "details">("list");
   const [query, setQuery] = useState("");
@@ -78,23 +82,35 @@ function App() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [libraryGames, setLibraryGames] = useState<GameInfo[]>([]);
-  const [currentVersion, setCurrentVersion] = useState("1.0.0");
+  const [currentVersion, setCurrentVersion] = useState("1.0.1");
   const [updateRelease, setUpdateRelease] = useState<ReleaseInfo | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState<boolean | null>(null);
   const [updateStatus, setUpdateStatus] = useState("");
   const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [language, setLanguage] = useState(localStorage.getItem("language") || "en");
+
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang);
+    localStorage.setItem("language", lang);
+    i18n.changeLanguage(lang);
+    toast.success(t("language_changed"), { description: t("language_changed_desc") });
+  };
+
+  useEffect(() => {
+    i18n.changeLanguage(language);
+  }, []);
 
   useEffect(() => {
     invoke<string | null>("get_steam_path").then((path) => {
       if (path) {
         setSteamPath(path);
-        toast.info("Steam Path Detected", { description: path });
+        toast.info(t("steam_path_detected"), { description: path });
       }
     });
 
     getVersion()
       .then((version) => setCurrentVersion(version))
-      .catch(() => setCurrentVersion("1.0.0"));
+      .catch(() => setCurrentVersion("1.0.1"));
 
     loadLibrary();
 
@@ -139,22 +155,24 @@ function App() {
   const handleRemoveGame = async (gameId: number) => {
     try {
       await invoke("remove_game_from_library", { gameId, steamPath });
-      toast.success("Game Removed", { description: "Game files deleted from library." });
+      toast.success(t("game_removed"), { description: t("game_removed_desc") });
       loadLibrary(); // Refresh library
       if (selectedGame?.id === gameId) {
         // Optionally go back or just update state
       }
     } catch (e) {
-      toast.error("Failed to remove game", { description: String(e) });
+      toast.error(t("failed_remove_game"), { description: String(e) });
     }
   };
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (query.length > 2) {
+      if (query.length > 0) {
         performSearch(query);
+      } else {
+        setResults([]);
       }
-    }, 500);
+    }, 300);
     return () => clearTimeout(timer);
   }, [query]);
 
@@ -188,7 +206,7 @@ function App() {
   const handleDownload = async (game?: GameInfo) => {
     const targetGame = game || selectedGame;
     if (!targetGame) {
-      toast.error("No game selected");
+      toast.error(t("no_game_selected"));
       return;
     }
     
@@ -204,7 +222,7 @@ function App() {
     const actualGame = (game && 'id' in game) ? game : selectedGame;
     
     if (!actualGame) {
-       toast.error("No game selected");
+       toast.error(t("no_game_selected"));
        return;
     }
 
@@ -212,7 +230,7 @@ function App() {
     try {
       const available = await invoke<boolean>("check_game_availability", { gameId: actualGame.id.toString() });
       if (!available) {
-        toast.error("Download unavailable", { description: "Sorry, this game is not available on our server yet." });
+        toast.error(t("download_unavailable"), { description: t("download_unavailable_desc") });
         return;
       }
       
@@ -224,10 +242,10 @@ function App() {
         gameId: actualGame.id.toString(), 
         steamPath: steamPath 
       });
-      toast.success("Installation Complete", { description: "Steam has been restarted." });
+      toast.success(t("installation_complete"), { description: t("installation_complete_desc") });
       loadLibrary(); // Refresh library
     } catch (e) {
-      toast.error("Error", { description: String(e) });
+      toast.error(t("error"), { description: String(e) });
     } finally {
       setIsDownloading(false);
       setCheckingAvailability(false);
@@ -237,13 +255,13 @@ function App() {
 
   const checkForUpdates = async () => {
     setCheckingUpdates(true);
-    setUpdateStatus("Checking for updates...");
+    setUpdateStatus(t("checking_updates"));
     try {
       const release = await invoke<any>("check_for_updates");
       if (!release) {
         setUpdateRelease(null);
         setUpdateAvailable(false);
-        setUpdateStatus("No releases found.");
+        setUpdateStatus(t("no_releases_found"));
         return;
       }
 
@@ -252,15 +270,15 @@ function App() {
       const comparison = compareVersions(currentVersion, parsed.version);
       if (comparison < 0) {
         setUpdateAvailable(true);
-        setUpdateStatus(`Update available: v${parsed.version}`);
+        setUpdateStatus(`${t("update_available")}: v${parsed.version}`);
       } else {
         setUpdateAvailable(false);
-        setUpdateStatus("You're up to date.");
+        setUpdateStatus(t("up_to_date"));
       }
     } catch (e) {
       setUpdateRelease(null);
       setUpdateAvailable(null);
-      setUpdateStatus("Update check failed.");
+      setUpdateStatus(t("update_check_failed"));
     } finally {
       setCheckingUpdates(false);
     }
@@ -278,14 +296,31 @@ function App() {
     await openReleasesPage();
   };
 
+  const handleTabChange = (tab: string) => {
+    // If clicking the current tab, reset the view to list/main view
+    if (activeTab === tab) {
+      if (tab === "home") {
+        setActiveView("list");
+        setSelectedGame(null);
+      }
+      return;
+    }
+    setActiveTab(tab);
+  };
+
   return (
     <div className="flex h-screen bg-background font-sans selection:bg-primary/20 overflow-hidden">
-      <TitleBar query={query} onSearch={setQuery} />
+      <TitleBar 
+        query={query} 
+        onSearch={setQuery} 
+        suggestions={results}
+        onSelectSuggestion={handleGameSelect}
+      />
       <Toaster position="top-center" />
       
       {/* Sidebar */}
       <div className="pt-10 h-full flex w-full">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -306,26 +341,15 @@ function App() {
                  />
                ) : (
                  <div className="h-full overflow-y-auto scrollbar-hide p-8 space-y-10 pb-24 animate-in fade-in duration-300">
-                    {query.length > 2 ? (
-                      <div className="space-y-6">
-                         <div className="flex items-center justify-between px-2">
-                            <h2 className="text-xl font-semibold">Search Results for "{query}"</h2>
-                         </div>
-                         <GameGrid 
-                          games={results} 
-                          onSelect={handleGameSelect} 
-                        />
-                      </div>
-                    ) : (
-                      <StorePage 
-                        onSelectGame={handleGameSelect}
-                        selectedGame={null}
-                        onDownload={handleDownload}
-                        isDownloading={isDownloading}
-                        checkingAvailability={checkingAvailability}
-                        libraryGames={libraryGames}
-                      />
-                    )}
+                    {/* Search Results Display Removed - now using suggestions dropdown */}
+                    <StorePage 
+                      onSelectGame={handleGameSelect}
+                      selectedGame={null}
+                      onDownload={handleDownload}
+                      isDownloading={isDownloading}
+                      checkingAvailability={checkingAvailability}
+                      libraryGames={libraryGames}
+                    />
                  </div>
                )}
             </div>
@@ -344,12 +368,12 @@ function App() {
           {activeTab === "downloads" && (
              <div className="h-full overflow-y-auto scrollbar-hide p-8 space-y-10 pb-24">
                 <div className="max-w-2xl mx-auto space-y-6">
-                   <h2 className="text-3xl font-bold tracking-tight">Active Downloads</h2>
+                   <h2 className="text-3xl font-bold tracking-tight">{t("active_downloads")}</h2>
                    {isDownloading || downloadProgress ? (
                      <DownloadStatus progress={downloadProgress} isDownloading={isDownloading} />
                    ) : (
                      <div className="text-center p-12 border border-dashed rounded-3xl text-muted-foreground">
-                       No active downloads
+                       {t("no_active_downloads")}
                      </div>
                    )}
                 </div>
@@ -360,21 +384,73 @@ function App() {
             <div className="h-full overflow-y-auto scrollbar-hide p-8 space-y-10 pb-24">
                 <div className="max-w-xl mx-auto space-y-8">
                    <div className="space-y-2">
-                     <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-                     <p className="text-muted-foreground">Configure application preferences</p>
+                     <h2 className="text-3xl font-bold tracking-tight">{t("settings")}</h2>
+                     <p className="text-muted-foreground">{t("settings_desc")}</p>
                    </div>
                    
                    <div className="space-y-4 p-6 border rounded-3xl bg-card">
                      <div className="space-y-2">
-                       <label className="text-sm font-medium">Steam Installation Path</label>
+                       <h3 className="text-lg font-semibold">{t("appearance")}</h3>
+                       <p className="text-sm text-muted-foreground">{t("appearance_desc")}</p>
+                       <div className="flex gap-2 pt-2">
+                         <Button 
+                           variant={theme === 'light' ? "default" : "outline"} 
+                           size="sm" 
+                           onClick={() => setTheme('light')}
+                           className="gap-2"
+                         >
+                           <Sun className="h-4 w-4" /> Light
+                         </Button>
+                         <Button 
+                           variant={theme === 'dark' ? "default" : "outline"} 
+                           size="sm" 
+                           onClick={() => setTheme('dark')}
+                           className="gap-2"
+                         >
+                           <Moon className="h-4 w-4" /> Dark
+                         </Button>
+                         <Button 
+                           variant={theme === 'system' ? "default" : "outline"} 
+                           size="sm" 
+                           onClick={() => setTheme('system')}
+                           className="gap-2"
+                         >
+                           <Laptop className="h-4 w-4" /> System
+                         </Button>
+                       </div>
+                     </div>
+                   </div>
+
+                   <div className="space-y-4 p-6 border rounded-3xl bg-card">
+                     <div className="space-y-2">
+                       <h3 className="text-lg font-semibold">{t("language")}</h3>
+                       <p className="text-sm text-muted-foreground">{t("language_desc")}</p>
+                       <select
+                           value={language}
+                           onChange={(e) => handleLanguageChange(e.target.value)}
+                           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                       >
+                           <option value="en">English</option>
+                           <option value="es">Español</option>
+                           <option value="fr">Français</option>
+                           <option value="de">Deutsch</option>
+                           <option value="zh">中文</option>
+                           <option value="ru">Русский</option>
+                       </select>
+                     </div>
+                   </div>
+
+                   <div className="space-y-4 p-6 border rounded-3xl bg-card">
+                     <div className="space-y-2">
+                       <label className="text-sm font-medium">{t("steam_path")}</label>
                        <div className="flex gap-2">
                          <Input value={steamPath} onChange={(e) => setSteamPath(e.target.value)} />
                          <Button variant="outline" onClick={() => invoke("get_steam_path").then((p) => p && setSteamPath(p as string))}>
-                           Detect
+                           {t("detect")}
                          </Button>
                        </div>
                        <p className="text-xs text-muted-foreground">
-                         This is usually C:\Program Files (x86)\Steam
+                         {t("steam_path_hint")}
                        </p>
                      </div>
                    </div>
@@ -382,11 +458,11 @@ function App() {
                   <div className="space-y-4 p-6 border rounded-3xl bg-card">
                     <div className="flex items-center justify-between gap-4">
                       <div className="space-y-1">
-                        <h3 className="text-lg font-semibold">Updates</h3>
-                        <p className="text-sm text-muted-foreground">Current version: v{currentVersion}</p>
+                        <h3 className="text-lg font-semibold">{t("updates")}</h3>
+                        <p className="text-sm text-muted-foreground">{t("current_version")}: v{currentVersion}</p>
                       </div>
                       <Button onClick={checkForUpdates} disabled={checkingUpdates}>
-                        {checkingUpdates ? "Checking..." : "Check for updates"}
+                        {checkingUpdates ? t("checking") : t("check_updates")}
                       </Button>
                     </div>
                     {updateStatus && (
@@ -408,9 +484,9 @@ function App() {
                           </div>
                         )}
                         <div className="flex gap-2">
-                          <Button onClick={downloadUpdate}>Download update</Button>
+                          <Button onClick={downloadUpdate}>{t("download_update")}</Button>
                           <Button variant="outline" onClick={openReleasesPage}>
-                            View releases
+                            {t("view_releases")}
                           </Button>
                         </div>
                       </div>
@@ -418,7 +494,7 @@ function App() {
                     {updateAvailable === false && (
                       <div className="flex gap-2">
                         <Button variant="outline" onClick={openReleasesPage}>
-                          View releases
+                          {t("view_releases")}
                         </Button>
                       </div>
                     )}

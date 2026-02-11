@@ -1,111 +1,320 @@
-<h1 align="center">Depo Tool</h1>
+<div align="center">
+  <br>
+  <p>
+    <img src="public/logo.png" alt="Depo Tool Logo" width="220" />
+  </p>
 
-<p align="center">Open Source · Built with Tauri</p>
+# Depo Tool
 
-<p align="center">
-  <img src="public/logo.png" alt="Depo Tool Logo" width="220" />
-</p>
+**🎮 Open-Source Steam Library Manager** • **⚡ Built with Tauri**
 
-Your games. Your rules.
+  <p>
+    <a href="https://github.com/HasibulHasan098/Depo-Tool/releases/latest">
+      <img src="https://img.shields.io/github/v/release/HasibulHasan098/Depo-Tool?style=for-the-badge&logo=github&color=brightgreen" />
+    </a>
+    <a href="https://github.com/HasibulHasan098/Depo-Tool/blob/main/LICENSE.md">
+      <img src="https://img.shields.io/github/license/HasibulHasan098/Depo-Tool?style=for-the-badge&logo=mit&color=yellow" />
+    </a>
+    <a href="https://github.com/HasibulHasan098/Depo-Tool/stargazers">
+      <img src="https://img.shields.io/github/stars/HasibulHasan098/Depo-Tool?style=for-the-badge&logo=starship&color=ff69b4" />
+    </a>
+    <br />
+    <a href="https://github.com/HasibulHasan098/Depo-Tool/issues">
+      <img src="https://img.shields.io/github/issues/HasibulHasan098/Depo-Tool?style=for-the-badge&logo=gitbook&color=orange" />
+    </a>
+    <a href="https://github.com/HasibulHasan098/Depo-Tool/forks">
+      <img src="https://img.shields.io/github/forks/HasibulHasan098/Depo-Tool?style=for-the-badge&logo=git&color=blue" />
+    </a>
+    <img src="https://img.shields.io/badge/Built%20With-Tauri-24C8DB?style=for-the-badge&logo=tauri" />
+    <img src="https://img.shields.io/badge/Platform-Windows-0078D4?style=for-the-badge&logo=windows" />
+  </p>
 
-Depo Tool is the open-source alternative to Steam Tools. Add games to your Steam library seamlessly — safe, transparent, and community-driven.
+  <h3>
+    <a href="https://github.com/HasibulHasan098/Depo-Tool/releases/latest">📥 Download</a>
+    •
+    <a href="https://github.com/HasibulHasan098/Depo-Tool">📖 Documentation</a>
+    •
+    <a href="https://github.com/HasibulHasan098/Depo-Tool/issues">🐛 Report Bug</a>
+    •
+    <a href="https://github.com/HasibulHasan098/Depo-Tool/discussions">💬 Discussions</a>
+  </h3>
+</div>
 
-<p align="center">
-  <a href="https://github.com/HasibulHasan098/Depo-Tool/releases/latest">Download Depo Tool</a>
-  ·
-  <a href="https://github.com/HasibulHasan098/Depo-Tool">View on GitHub</a>
-  ·
-  <a href="https://luagen.revobd.club/">Lua files only</a>
-</p>
+---
 
-## Highlights
+## 🌟 Overview
 
-- 100% Open Source
-- 100% Virus Free (Auditable)
-- Dual Server Redundancy
-- No telemetry, no tracking, no data collection
-- Built with Tauri for native performance
+<div align="center">
+  <p>
+    <strong>Depo Tool</strong> is a powerful, open-source Steam library manager designed for <strong>transparency</strong>, <strong>performance</strong>, and <strong>simplicity</strong>.
+  </p>
+  <p>
+    Seamlessly integrate supported game packages into your Steam library through an automated and structured process.
+  </p>
+</div>
 
+### 🎯 Key Principles
+- 🔒 **No telemetry** • **No tracking** • **Fully auditable source code**
+- ⚡ **Lightning-fast** performance with Tauri framework
+- 🎨 **Modern, intuitive** user interface
+- 🌍 **Community-driven** development
+- 🔧 **Transparent** and auditable codebase
 
-## Why Depo Tool
+---
 
-Built different. Built better.  
-A powerful, safe, and community-driven Steam library manager.
+## ✨ Features
 
-- Security Scan: All checks passed
-- Code verified
-- Dependencies clean
-- Cloudflare + GitHub for speed and reliability
+<div align="center">
+  <table>
+    <tr>
+      <td width="50%" valign="top">
+        <h3>🚀 Performance & Technology</h3>
+        <ul>
+          <li>✅ Built with <strong>Rust + Tauri</strong> for native performance</li>
+          <li>✅ <strong>Minimal resource usage</strong> - Tiny footprint</li>
+          <li>✅ <strong>Dual CDN infrastructure</strong> (Cloudflare + GitHub)</li>
+          <li>✅ <strong>Automatic updates</strong> with built-in update checker</li>
+        </ul>
+      </td>
+      <td width="50%" valign="top">
+        <h3>🔒 Security & Transparency</h3>
+        <ul>
+          <li>✅ <strong>100% open source</strong> - All code visible on GitHub</li>
+          <li>✅ <strong>No data collection</strong> - Complete privacy</li>
+          <li>✅ <strong>Auditable codebase</strong> - Verify everything yourself</li>
+          <li>✅ <strong>Modern security practices</strong></li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td width="50%" valign="top">
+        <h3>🎮 Steam Integration</h3>
+        <ul>
+          <li>✅ <strong>Automated manifest handling</strong></li>
+          <li>✅ <strong>Smart Lua file management</strong></li>
+          <li>✅ <strong>Seamless Steam integration</strong></li>
+          <li>✅ <strong>Clean library organization</strong></li>
+        </ul>
+      </td>
+      <td width="50%" valign="top">
+        <h3>🛠️ User Experience</h3>
+        <ul>
+          <li>✅ <strong>Clean, modern interface</strong></li>
+          <li>✅ <strong>One-click installation</strong></li>
+          <li>✅ <strong>Real-time progress tracking</strong></li>
+          <li>✅ <strong>Intuitive game search</strong></li>
+        </ul>
+      </td>
+    </tr>
+  </table>
+</div>
 
-## Core Benefits
+---
 
-- One-Click Install: Search, click, play
-- Auto extraction of manifests and Lua files
-- Privacy First by design
-- Lightning fast dual CDN downloads
-- Beautiful, clean UI/UX
-- Auto updates
+## 🎨 Screenshots
 
-## How it works
+<div align="center">
+  <p>
+    <em>🖼️ Screenshots coming soon!</em>
+  </p>
+</div>
 
-Four steps. Zero friction.
+---
 
-1. Search for your game  
-   Find any game using Steam’s database. Type a name and Depo Tool locates the App ID instantly.
-2. Download the package  
-   Dual-server infrastructure fetches the game files from Cloudflare + GitHub for maximum speed.
-3. Auto extraction  
-   Manifest and Lua files are extracted and placed directly into your Steam folder structure.
-4. Game added  
-   Your game appears in Steam. No manual setup, no commands. Just launch and play.
+## 🚀 Quick Start
 
-## Comparison
+### 📥 Installation
+
+<div align="center">
+
+| Platform | Download | Status |
+|----------|----------|---------|
+| 🪟 **Windows** | [Latest Release](https://github.com/HasibulHasan098/Depo-Tool/releases/latest) | ✅ Supported |
+| 🐧 **Linux** | Coming Soon | 🚧 In Development |
+| 🍎 **macOS** | Coming Soon | 🚧 Planned |
+
+</div>
+
+### ⚡ Getting Started
+
+1. **📥 Download** the latest release from [GitHub Releases](https://github.com/HasibulHasan098/Depo-Tool/releases/latest)
+2. **🚀 Install** Depo Tool on your system
+3. **🔍 Search** for your favorite games
+4. **➕ Add** games to your Steam library with one click
+
+---
+
+## 🔧 How It Works
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="25%">
+        <h3>1️⃣ Search</h3>
+        <p>Find supported titles using Steam App IDs</p>
+      </td>
+      <td align="center" width="25%">
+        <h3>2️⃣ Download</h3>
+        <p>Packages retrieved through redundant CDN infrastructure</p>
+      </td>
+      <td align="center" width="25%">
+        <h3>3️⃣ Extract</h3>
+        <p>Automatic structuring into correct Steam directories</p>
+      </td>
+      <td align="center" width="25%">
+        <h3>4️⃣ Integrate</h3>
+        <p>Game becomes available in Steam client</p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+---
+
+## 🏗️ Architecture
+
+<div align="center">
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| 🖥️ **Frontend** | React + TypeScript | Modern, responsive UI |
+| ⚙️ **Backend** | Rust | High-performance core |
+| 🚀 **Framework** | Tauri | Native desktop app |
+| 📦 **Distribution** | GitHub Releases | Easy updates |
+| 🌐 **CDN** | Cloudflare + GitHub | Fast downloads |
+
+</div>
+
+---
+
+## 📊 Comparison
+
+<div align="center">
 
 | Feature | Depo Tool | Steam Tools |
-| --- | --- | --- |
-| Open Source | ✅ | ❌ |
-| Virus Free (Auditable) | ✅ | ❌ |
-| Modern UI/UX | ✅ | ❌ |
-| Dual CDN Servers | ✅ | ❌ |
-| Built with Tauri | ✅ | ❌ |
-| Auto Updates | ✅ | ❌ |
-| Community Contributions | ✅ | ❌ |
-| Privacy Focused | ✅ | ❌ |
+|:--------|:---------:|:-----------:|
+| **Open Source** | ✅ | ❌ |
+| **Transparent Code** | ✅ | ❌ |
+| **Modern UI** | ✅ | ❌ |
+| **Auto Updates** | ✅ | ❌ |
+| **Community Driven** | ✅ | ❌ |
+| **Privacy Focused** | ✅ | ❌ |
+| **Performance** | ⚡ Lightning Fast | 🐌 Slow |
+| **Security** | 🔒 Auditable | ❓ Unknown |
 
-**Overall Score**  
-Depo Tool: 9.8 vs Steam Tools: 5.2
+</div>
 
-## Recently Added
+---
 
-- Baldur’s Gate 3
-- Starfield
-- Palworld
+## 🗺️ Roadmap
 
-## Open source. Open to all.
+<div align="center">
 
-Depo Tool is fully open source. Read the code, verify it’s safe, suggest improvements, or contribute new features. This project belongs to the community.
+### 🎯 Coming Soon
+- 🐧 **Linux support** - Native Linux application
+- 🔌 **Plugin system** - Extensible architecture
+- 🌍 **Multi-language support** - Internationalization
+- 🎨 **UI refinements** - Enhanced user experience
 
-## FAQ
+### 🔮 Future Plans
+- 📱 **Mobile companion app** - Remote management
+- 🤖 **AI-powered recommendations** - Smart suggestions
+- 🌐 **Web interface** - Browser-based management
+- ⚡ **Performance optimizations** - Even faster operations
 
-**Is Depo Tool really safe to use?**  
-Every line of code is open source and auditable. No hidden payloads, no telemetry, no data collection.
+</div>
 
-**How does Depo Tool add games to Steam?**  
-It downloads the required packages and places manifests and Lua files into your Steam folder automatically.
+---
 
-**What servers does Depo Tool use?**  
-Dual-server infrastructure using Cloudflare + GitHub for speed and redundancy.
+## 🤝 Contributing
 
-**Can I contribute to Depo Tool?**  
-Yes. Contributions are welcome. Open a PR or issue on GitHub.
+<div align="center">
 
-**Why use Depo Tool instead of Steam Tools?**  
-Open source, modern UI/UX, privacy-first, and community-driven.
+We welcome contributions from the community! 🌟
 
-**What platforms does Depo Tool support?**  
-Windows desktop.
+### 🚀 Quick Contribution Guide
 
+1. **🍴 Fork** the repository
+2. **🌿 Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **💻 Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **🚀 Push** to the branch (`git push origin feature/amazing-feature`)
+5. **📝 Open** a Pull Request
 
-## Warning
+### 🎯 What We're Looking For
+- 🐛 **Bug fixes** and **performance improvements**
+- 🎨 **UI/UX enhancements** and **design suggestions**
+- 🌍 **Translations** and **localization**
+- 📖 **Documentation** improvements
+- 💡 **Feature requests** and **ideas**
 
-Depo Tool is not affiliated with, endorsed by, or connected to Valve Corporation or Steam in any way. Steam and the Steam logo are trademarks of Valve Corporation. All game names and trademarks are property of their respective owners.
+For major changes, please open an issue first to discuss what you would like to change.
+
+</div>
+
+---
+
+## ❓ FAQ
+
+<div align="center">
+
+### 🔒 Is Depo Tool safe to use?
+
+**Absolutely!** The entire project is open source and publicly auditable on GitHub. There is no telemetry, tracking, or hidden data collection. Every line of code is transparent and verifiable.
+
+### 🖥️ What platforms are supported?
+
+**Currently:**
+- 🪟 **Windows Desktop** - Fully supported
+
+**Coming Soon:**
+- 🐧 **Linux** - In development
+- 🍎 **macOS** - Planned
+
+### ⚖️ Is Depo Tool affiliated with Valve or Steam?
+
+**No.** Depo Tool is not affiliated with, endorsed by, or connected to Valve Corporation or Steam in any way. Steam and the Steam logo are trademarks of Valve Corporation. All game names and trademarks are property of their respective owners.
+
+### 🆓 Is Depo Tool really free?
+
+**Yes!** Depo Tool is completely free and open source. You can use it, modify it, and distribute it without any cost.
+
+### 🔧 How often is Depo Tool updated?
+
+We release updates regularly with new features, bug fixes, and performance improvements. The built-in update checker ensures you're always running the latest version.
+
+</div>
+
+---
+
+## 📄 License
+
+<div align="center">
+
+This project is licensed under the **MIT License** - see the [LICENSE.md](LICENSE.md) file for details.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+</div>
+
+---
+
+<div align="center">
+
+### 🌟 Star Us on GitHub!
+
+If you find Depo Tool useful, please consider giving us a ⭐ on GitHub!
+
+[![GitHub Stars](https://img.shields.io/github/stars/HasibulHasan098/Depo-Tool?style=social)](https://github.com/HasibulHasan098/Depo-Tool/stargazers)
+
+### 💝 Support the Project
+
+- 🐛 **Report bugs** via [GitHub Issues](https://github.com/HasibulHasan098/Depo-Tool/issues)
+- 💡 **Suggest features** in [Discussions](https://github.com/HasibulHasan098/Depo-Tool/discussions)
+- 📝 **Contribute** code via [Pull Requests](https://github.com/HasibulHasan098/Depo-Tool/pulls)
+- 📢 **Share** Depo Tool with your friends!
+
+---
+
+**<p align="center">Built for transparency. Built for control. Built for you.</p>**
+
+</div>

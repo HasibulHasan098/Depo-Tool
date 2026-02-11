@@ -1,16 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { GameInfo } from "@/types";
+import { useTranslation } from "react-i18next";
 
 interface TitleBarProps {
   query?: string;
   onSearch?: (q: string) => void;
+  suggestions?: GameInfo[];
+  onSelectSuggestion?: (game: GameInfo) => void;
 }
 
-export function TitleBar({ query, onSearch }: TitleBarProps) {
+export function TitleBar({ query, onSearch, suggestions = [], onSelectSuggestion }: TitleBarProps) {
+  const { t } = useTranslation();
   const [isMaximized, setIsMaximized] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const appWindow = getCurrentWindow();
 
   useEffect(() => {
@@ -24,6 +31,26 @@ export function TitleBar({ query, onSearch }: TitleBarProps) {
       unlisten.then((f) => f());
     };
   }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [wrapperRef]);
+
+  useEffect(() => {
+    if (query && query.length > 0) {
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [query, suggestions]);
 
   const minimize = () => appWindow.minimize();
   const toggleMaximize = async () => {
@@ -63,14 +90,51 @@ export function TitleBar({ query, onSearch }: TitleBarProps) {
                 }}
             />
             {onSearch && (
-            <div className="w-full max-w-md relative group">
+            <div className="w-full max-w-md relative group" ref={wrapperRef}>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors z-20" />
                 <Input 
-                value={query}
-                onChange={(e) => onSearch(e.target.value)}
-                className="h-8 pl-9 bg-secondary/50 border-transparent focus-visible:ring-0 focus-visible:ring-offset-0 focus:bg-background rounded-full transition-all text-sm shadow-sm hover:bg-secondary/80 outline-none"
-                placeholder="Search by name or App ID..." 
+                  value={query}
+                  onChange={(e) => onSearch(e.target.value)}
+                  onFocus={() => {
+                    if (query && query.length > 0) setShowSuggestions(true);
+                  }}
+                  className="h-8 pl-9 bg-secondary/50 border-transparent focus-visible:ring-0 focus-visible:ring-offset-0 focus:bg-background rounded-full transition-all text-sm shadow-sm hover:bg-secondary/80 outline-none"
+                  placeholder={t("search_placeholder")}
                 />
+                
+                {/* Search Suggestions Dropdown */}
+                {showSuggestions && suggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-popover/95 backdrop-blur-md border border-border rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="max-h-[300px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+                      {suggestions.map((game) => (
+                        <button
+                          key={game.id}
+                          onClick={() => {
+                            onSelectSuggestion?.(game);
+                            setShowSuggestions(false);
+                          }}
+                          className="w-full text-left px-4 py-2.5 hover:bg-accent/50 transition-colors flex items-center gap-3 group/item"
+                        >
+                          <div className="w-8 h-10 rounded-sm overflow-hidden bg-muted flex-shrink-0 relative">
+                            {game.thumbnail ? (
+                              <img src={game.thumbnail} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">?</div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-foreground truncate group-hover/item:text-primary transition-colors">
+                              {game.name}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              ID: {game.id}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
             )}
         </div>
