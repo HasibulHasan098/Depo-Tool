@@ -85,8 +85,6 @@ Depo Tool: 9.8 vs Steam Tools: 5.2
 
 Depo Tool is fully open source. Read the code, verify it’s safe, suggest improvements, or contribute new features. This project belongs to the community.
 
-[Contribute on GitHub](#) · [Report an Issue](#)
-
 ## FAQ
 
 **Is Depo Tool really safe to use?**  
@@ -107,9 +105,6 @@ Open source, modern UI/UX, privacy-first, and community-driven.
 **What platforms does Depo Tool support?**  
 Windows desktop.
 
-## License
-
-MIT License. See [MIT_LICENSE.txt](file:///d:/Downloads/Depo%20Tool/src-tauri/assets/MIT_LICENSE.txt).
 
 ## Warning
 

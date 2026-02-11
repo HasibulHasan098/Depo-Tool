@@ -54,7 +54,7 @@ function parseRelease(release: any): ReleaseInfo {
   }
 
   const tagName = release.tag_name || "";
-  const version = tagName.replace(/^v/, "") || release.name?.replace(/^v/, "") || "0.0.0";
+  const version = tagName.replace(/^v/, "") || release.name?.replace(/^v/, "") || "1.0.0";
 
   return {
     version,
@@ -78,7 +78,7 @@ function App() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [libraryGames, setLibraryGames] = useState<GameInfo[]>([]);
-  const [currentVersion, setCurrentVersion] = useState("0.0.0");
+  const [currentVersion, setCurrentVersion] = useState("1.0.0");
   const [updateRelease, setUpdateRelease] = useState<ReleaseInfo | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState<boolean | null>(null);
   const [updateStatus, setUpdateStatus] = useState("");
@@ -94,7 +94,7 @@ function App() {
 
     getVersion()
       .then((version) => setCurrentVersion(version))
-      .catch(() => setCurrentVersion("0.0.0"));
+      .catch(() => setCurrentVersion("1.0.0"));
 
     loadLibrary();
 
