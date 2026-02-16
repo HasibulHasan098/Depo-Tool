@@ -16,6 +16,7 @@ use windows_sys::Win32::UI::Shell::ShellExecuteW;
 use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
+const EMBEDDED_APP: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/embedded_depo_tool.exe"));
 
 fn to_wide(value: &str) -> Vec<u16> {
     OsStr::new(value).encode_wide().chain(std::iter::once(0)).collect()
@@ -174,13 +175,21 @@ async fn install_app(app_handle: AppHandle, install_path: String, create_shortcu
         fs::create_dir_all(target_dir).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
-    // 2. Extract Resources (Main App)
-    let resource_path = app_handle.path().resolve("resources/depo-tool.exe", tauri::path::BaseDirectory::Resource)
-        .map_err(|e| format!("Failed to resolve resource: {}", e))?;
-    
     let target_app_path = target_dir.join("depo-tool.exe");
-    fs::copy(&resource_path, &target_app_path)
-        .map_err(|e| format!("Failed to copy app file: {}", e))?;
+    if !EMBEDDED_APP.is_empty() {
+        fs::write(&target_app_path, EMBEDDED_APP)
+            .map_err(|e| format!("Failed to write app file: {}", e))?;
+    } else {
+        let resource_path = app_handle
+            .path()
+            .resolve("resources/depo-tool.exe", tauri::path::BaseDirectory::Resource)
+            .map_err(|e| format!("Failed to resolve resource: {}", e))?;
+        if !resource_path.exists() {
+            return Err("INSTALLER_RESOURCES_MISSING".to_string());
+        }
+        fs::copy(&resource_path, &target_app_path)
+            .map_err(|e| format!("Failed to copy app file: {}", e))?;
+    }
 
     // 3. Copy Installer as Uninstaller
     if let Ok(current_exe) = env::current_exe() {

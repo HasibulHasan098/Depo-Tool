@@ -20,6 +20,7 @@ function AppContent() {
   const [launchNow, setLaunchNow] = useState(true);
   const [isUninstallMode, setIsUninstallMode] = useState(false);
   const [uninstallCompleted, setUninstallCompleted] = useState(false);
+  const [installError, setInstallError] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkMode() {
@@ -67,6 +68,7 @@ function AppContent() {
 
   const handleInstall = async () => {
     setIsInstalling(true);
+    setInstallError(null);
     
     try {
         await invoke("install_app", { installPath, createShortcut });
@@ -85,8 +87,13 @@ function AppContent() {
         }, 100);
     } catch (e) {
         console.error("Installation failed:", e);
+        const message = String(e);
+        if (message.includes("INSTALLER_RESOURCES_MISSING")) {
+            setInstallError(t("install_missing_resources_desc"));
+        } else {
+            setInstallError(message);
+        }
         setIsInstalling(false);
-        // Could show error state here
     }
   };
 
@@ -361,6 +368,13 @@ function AppContent() {
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
+                            </div>
+                        )}
+
+                        {installError && !isInstalling && (
+                            <div className="rounded-sm border border-destructive/30 bg-destructive/10 p-3 text-[11px] text-destructive">
+                                <div className="font-semibold">{t("install_failed_title")}</div>
+                                <div>{installError}</div>
                             </div>
                         )}
                     </div>

@@ -1,4 +1,15 @@
+use std::env;
+use std::fs;
+use std::path::PathBuf;
+
 fn main() {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let embedded_path = out_dir.join("embedded_depo_tool.exe");
+    let source_path = PathBuf::from("resources").join("depo-tool.exe");
+    if fs::copy(&source_path, &embedded_path).is_err() {
+        let _ = fs::write(&embedded_path, []);
+    }
+
     #[cfg(windows)]
     {
         // Don't add manifest via linker arg OR winres if tauri-build adds one.
