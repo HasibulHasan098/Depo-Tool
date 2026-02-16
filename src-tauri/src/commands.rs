@@ -24,6 +24,7 @@ fn resolve_external_tool(window: &Window, file: &str) -> Option<PathBuf> {
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
             candidates.push(dir.join(file));
+            candidates.push(dir.join("bin").join(file));
             candidates.push(dir.join("resources").join(file));
         }
     }
@@ -53,6 +54,68 @@ pub async fn install_online_fix(window: Window, game_id: String, install_dir: St
     let _ = std::fs::remove_file(zip_path);
     
     Ok("Success".to_string())
+}
+
+#[tauri::command]
+pub async fn check_external_tool_status(window: Window, tool_name: String) -> bool {
+    resolve_external_tool(&window, &tool_name).is_some()
+}
+
+#[tauri::command]
+pub async fn install_external_tool(window: Window, url: String, subfolder: Option<String>) -> Result<String, String> {
+    // 1. Download
+    let zip_path = download_online_fix_files(&url, &window).await?;
+
+    // 2. Determine Install Path
+    let mut install_dir = if let Ok(exe) = std::env::current_exe() {
+         exe.parent().unwrap().to_path_buf()
+    } else {
+         return Err("Could not determine install location".to_string());
+    };
+    
+    // If subfolder is provided, append it
+    if let Some(folder) = subfolder {
+        install_dir = install_dir.join(folder);
+        // Create the directory if it doesn't exist
+        if !install_dir.exists() {
+            std::fs::create_dir_all(&install_dir).map_err(|e| e.to_string())?;
+        }
+    }
+    
+    // 3. Extract
+    install_online_fix_files(&zip_path, &install_dir)?;
+
+    // 4. Cleanup
+    let _ = std::fs::remove_file(zip_path);
+
+    Ok("Success".to_string())
+}
+
+#[tauri::command]
+pub async fn get_url_file_size(url: String) -> Result<String, String> {
+    let client = Client::new();
+    let response = client
+        .head(&url)
+        .header("User-Agent", "Depo-Tool")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !response.status().is_success() {
+        return Err(format!("Request failed: {}", response.status()));
+    }
+
+    // Try to get Content-Length from headers directly
+    if let Some(length_header) = response.headers().get(reqwest::header::CONTENT_LENGTH) {
+        if let Ok(length_str) = length_header.to_str() {
+            if let Ok(length) = length_str.parse::<u64>() {
+                let size_mb = length as f64 / (1024.0 * 1024.0);
+                return Ok(format!("{:.2} MB", size_mb));
+            }
+        }
+    }
+    
+    Err("Content-Length header missing or invalid".to_string())
 }
 
 #[tauri::command]

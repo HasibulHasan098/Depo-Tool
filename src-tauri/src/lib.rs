@@ -39,16 +39,19 @@ pub fn run() {
             get_game_details,
             get_library_games,
             check_game_availability,
-            download_and_install_cmd,
-            remove_game_from_library,
             restore_backup,
             get_steam_path,
             check_for_updates,
             find_game_install_path,
             install_online_fix,
+            check_external_tool_status,
+            install_external_tool,
+            get_url_file_size,
             launch_cream_installer,
             launch_sam_picker,
-            launch_cw
+            launch_cw,
+            download_and_install_cmd,
+            remove_game_from_library
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
