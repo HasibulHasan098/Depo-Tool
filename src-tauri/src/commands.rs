@@ -4,11 +4,38 @@ use crate::processing::{process_downloaded_file, restart_steam as steam_restart,
 use crate::utils::{detect_steam_path, find_game_install_path_in_library};
 use crate::library::{add_to_library, get_library, remove_from_library};
 use std::path::PathBuf;
-use tauri::Window;
+use tauri::{Window, Manager};
 use reqwest::Client;
 use serde_json::Value;
 use std::process::Command as ProcCommand;
-use std::fs;
+
+// Helper to resolve external tools
+fn resolve_external_tool(window: &Window, file: &str) -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+    
+    // 1. App Resource Dir (Packaged)
+    if let Ok(resource_dir) = window.path().resource_dir() {
+         candidates.push(resource_dir.join(file));
+         candidates.push(resource_dir.join("bin").join(file));
+         candidates.push(resource_dir.join("resources").join(file));
+    }
+    
+    // 2. Executable Dir (Portable/Dev)
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join(file));
+            candidates.push(dir.join("resources").join(file));
+        }
+    }
+    
+    // 3. Debug Env Var (Dev override)
+    #[cfg(debug_assertions)]
+    if let Ok(dev_path) = std::env::var("DEPO_TOOL_TOOLS_DIR") {
+        candidates.push(PathBuf::from(dev_path).join(file));
+    }
+
+    candidates.into_iter().find(|p| p.exists())
+}
 
 use crate::download::download_online_fix_files;
 use crate::processing::install_online_fix_files;
@@ -29,20 +56,9 @@ pub async fn install_online_fix(window: Window, game_id: String, install_dir: St
 }
 
 #[tauri::command]
-pub async fn launch_cream_installer() -> Result<String, String> {
-    // Candidate locations: bundled next to exe, in resources folder, dev path provided by user
-    let mut candidates: Vec<PathBuf> = Vec::new();
-
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            candidates.push(dir.join("CreamInstaller.exe"));
-            candidates.push(dir.join("resources").join("CreamInstaller.exe"));
-        }
-    }
-    candidates.push(PathBuf::from(r"D:\Downloads\Depo Tool\CreamInstaller.exe"));
-
-    let target = candidates.into_iter().find(|p| p.exists())
-        .ok_or_else(|| "CreamInstaller.exe not found in bundle or dev path".to_string())?;
+pub async fn launch_cream_installer(window: Window) -> Result<String, String> {
+    let target = resolve_external_tool(&window, "CreamInstaller.exe")
+        .ok_or_else(|| "CreamInstaller.exe not found".to_string())?;
 
     let mut child = ProcCommand::new(&target)
         .spawn()
@@ -56,19 +72,9 @@ pub async fn launch_cream_installer() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn launch_sam_picker() -> Result<String, String> {
-    let mut candidates: Vec<PathBuf> = Vec::new();
-
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            candidates.push(dir.join("SAM.Picker.exe"));
-            candidates.push(dir.join("resources").join("SAM.Picker.exe"));
-        }
-    }
-    candidates.push(PathBuf::from(r"D:\Downloads\Depo Tool\SAM.Picker.exe"));
-
-    let target = candidates.into_iter().find(|p| p.exists())
-        .ok_or_else(|| "SAM.Picker.exe not found in bundle or dev path".to_string())?;
+pub async fn launch_sam_picker(window: Window) -> Result<String, String> {
+    let target = resolve_external_tool(&window, "SAM.Picker.exe")
+        .ok_or_else(|| "SAM.Picker.exe not found".to_string())?;
 
     let mut child = ProcCommand::new(&target)
         .current_dir(target.parent().unwrap_or(&target))
@@ -83,19 +89,10 @@ pub async fn launch_sam_picker() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn launch_cw() -> Result<String, String> {
-    let mut candidates: Vec<PathBuf> = Vec::new();
-
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            candidates.push(dir.join("CW").join("CrackWorld Library.exe"));
-            candidates.push(dir.join("resources").join("CW").join("CrackWorld Library.exe"));
-        }
-    }
-    candidates.push(PathBuf::from(r"D:\Downloads\Depo Tool\CW\CrackWorld Library.exe"));
-
-    let target = candidates.into_iter().find(|p| p.exists())
-        .ok_or_else(|| "CrackWorld Library.exe not found in bundle or dev path".to_string())?;
+pub async fn launch_cw(window: Window) -> Result<String, String> {
+    let target = resolve_external_tool(&window, "CW/CrackWorld Library.exe")
+        .or_else(|| resolve_external_tool(&window, "CrackWorld Library.exe"))
+        .ok_or_else(|| "CrackWorld Library.exe not found".to_string())?;
 
     let mut child = ProcCommand::new(&target)
         .current_dir(target.parent().unwrap_or(&target))
@@ -243,7 +240,7 @@ pub async fn download_and_install(window: Window, game_id: String, steam_path: S
     // This might fail if network is down but we just downloaded? 
     // Ideally we pass the GameInfo object to this command, but that requires changing signature.
     // Let's try to fetch details quickly.
-    if let Ok(details) = steam_details(id_u32).await {
+    if let Ok(_details) = steam_details(id_u32).await {
         // We need name and images. Details gives description/media.
         // We might need to use store search or featured to get the exact "GameInfo" structure or just manual construct.
         // Actually, let's just make a simple helper or assume we can get it.
