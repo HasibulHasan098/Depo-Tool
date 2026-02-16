@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use reqwest::Client;
 use log::{info, error};
+use futures_util::stream::{self, StreamExt};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -88,6 +89,10 @@ pub async fn get_game_details(game_id: u32) -> Result<GameDetails, String> {
     let url = format!("https://store.steampowered.com/api/appdetails?appids={}", game_id);
     
     let response = client.get(&url)
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .header("Accept", "application/json, text/plain, */*")
+        .header("Accept-Language", "en-US,en;q=0.9")
+        .header("Referer", "https://store.steampowered.com/")
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -169,6 +174,10 @@ pub async fn get_featured_games() -> Result<Vec<GameInfo>, String> {
     let url = "https://store.steampowered.com/api/featuredcategories";
     
     let response = client.get(url)
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .header("Accept", "application/json, text/plain, */*")
+        .header("Accept-Language", "en-US,en;q=0.9")
+        .header("Referer", "https://store.steampowered.com/")
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -235,7 +244,14 @@ pub async fn search_games(query: &str) -> Result<Vec<GameInfo>, String> {
         info!("Query detected as App ID: {}", app_id);
         // Try to fetch app details directly
         let url = format!("https://store.steampowered.com/api/appdetails?appids={}", app_id);
-        if let Ok(response) = client.get(&url).send().await {
+        if let Ok(response) = client.get(&url)
+            // Use same headers as browser to avoid 403
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            .header("Accept", "application/json, text/plain, */*")
+            .header("Accept-Language", "en-US,en;q=0.9")
+            .header("Referer", "https://store.steampowered.com/")
+            .send().await 
+        {
             if let Ok(details_map) = response.json::<HashMap<String, AppDetailsEntry>>().await {
                 if let Some(entry) = details_map.get(&app_id.to_string()) {
                     if entry.success {
@@ -262,7 +278,12 @@ pub async fn search_games(query: &str) -> Result<Vec<GameInfo>, String> {
     // Switch to the main store search endpoint with json=1, which returns better results
     let url = format!("https://store.steampowered.com/search/results/?term={}&json=1&cc=US&l=english", query);
     
+    // Add user agent to avoid 403 Forbidden
     let response = client.get(&url)
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .header("Accept", "application/json, text/plain, */*")
+        .header("Accept-Language", "en-US,en;q=0.9")
+        .header("Referer", "https://store.steampowered.com/")
         .send()
         .await
         .map_err(|e| {
@@ -305,6 +326,57 @@ pub async fn search_games(query: &str) -> Result<Vec<GameInfo>, String> {
         .collect();
 
     info!("Found {} games for query '{}'", games.len(), query);
+    Ok(games)
+}
+
+pub async fn get_game_briefs(app_ids: Vec<u32>) -> Result<Vec<GameInfo>, String> {
+    if app_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let client = Client::new();
+    let results = stream::iter(app_ids)
+        .map(|id| {
+            let client = client.clone();
+            async move {
+                let url = format!("https://store.steampowered.com/api/appdetails?appids={}", id);
+                let response = client
+                    .get(&url)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    .header("Accept", "application/json, text/plain, */*")
+                    .header("Accept-Language", "en-US,en;q=0.9")
+                    .header("Referer", "https://store.steampowered.com/")
+                    .send()
+                    .await
+                    .ok()?;
+
+                if !response.status().is_success() {
+                    return None;
+                }
+
+                let details_map: HashMap<String, AppDetailsEntry> = response.json().await.ok()?;
+                let entry = details_map.get(&id.to_string())?;
+                if !entry.success {
+                    return None;
+                }
+                let data = entry.data.as_ref()?;
+                let name = data.name.as_ref()?;
+                Some(GameInfo {
+                    id,
+                    name: name.clone(),
+                    thumbnail: format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/header.jpg", id),
+                    header_image: format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/header.jpg", id),
+                    library_image: format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900.jpg", id),
+                    library_hero: format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_hero.jpg", id),
+                    installed_files: Vec::new(),
+                })
+            }
+        })
+        .buffer_unordered(6)
+        .collect::<Vec<_>>()
+        .await;
+
+    let games = results.into_iter().flatten().collect();
     Ok(games)
 }
 

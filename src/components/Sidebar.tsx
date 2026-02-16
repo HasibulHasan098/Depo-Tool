@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Store, Download, Settings, Library, PanelLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Store, Download, Settings, Library, PanelLeft, Cloud, Lock, Trophy, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -10,12 +10,26 @@ interface SidebarProps {
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { t } = useTranslation();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(() => {
+    const saved = localStorage.getItem("sidebar_expanded");
+    if (saved === null) {
+      return true;
+    }
+    return saved === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("sidebar_expanded", String(isExpanded));
+  }, [isExpanded]);
 
   const items = [
     { id: "home", icon: Store, label: t("store") },
     { id: "library", icon: Library, label: t("library") },
     { id: "downloads", icon: Download, label: t("downloads") },
+    { id: "online-fix", icon: Cloud, label: t("online_fix") },
+    { id: "dlc", icon: Lock, label: t("dlc") },
+    { id: "game-fix", icon: Gamepad2, label: t("game_fix") },
+    { id: "achievements", icon: Trophy, label: t("achievements") },
   ];
 
   return (

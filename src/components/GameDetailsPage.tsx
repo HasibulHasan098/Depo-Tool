@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { GameInfo, GameDetails } from "@/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Play, Download, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface GameDetailsPageProps {
   game: GameInfo;
@@ -15,6 +16,7 @@ interface GameDetailsPageProps {
 }
 
 export function GameDetailsPage({ game, onBack, onDownload, onRemove, isInstalled, isDownloading, checkingAvailability }: GameDetailsPageProps) {
+  const { t } = useTranslation();
   const [details, setDetails] = useState<GameDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeMedia, setActiveMedia] = useState<string | null>(null);
@@ -44,7 +46,7 @@ export function GameDetailsPage({ game, onBack, onDownload, onRemove, isInstalle
           className="absolute top-6 left-6 z-30 flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white transition-all group"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span>Back to Store</span>
+          <span>{t("back_to_store")}</span>
         </button>
 
         {/* Media Background */}
@@ -101,7 +103,7 @@ export function GameDetailsPage({ game, onBack, onDownload, onRemove, isInstalle
                       disabled
                     >
                       <Play className="w-6 h-6 fill-current" />
-                      Installed
+                      {t("installed")}
                     </Button>
                     {onRemove && (
                       <Button 
@@ -111,7 +113,7 @@ export function GameDetailsPage({ game, onBack, onDownload, onRemove, isInstalle
                         className="rounded-full px-8 py-6 text-lg gap-3 shadow-2xl"
                       >
                         <Trash2 className="w-6 h-6" />
-                        Uninstall
+                        {t("uninstall")}
                       </Button>
                     )}
                  </>
@@ -123,7 +125,7 @@ export function GameDetailsPage({ game, onBack, onDownload, onRemove, isInstalle
                     className="rounded-full px-8 py-6 text-lg gap-3 shadow-2xl bg-primary hover:bg-primary/90"
                   >
                     <Download className="w-6 h-6" />
-                    {checkingAvailability ? "Checking..." : isDownloading ? "Installing..." : "Download Now"}
+                    {checkingAvailability ? t("checking") : isDownloading ? t("installing") : t("download_now")}
                   </Button>
                )}
              </div>
@@ -139,7 +141,7 @@ export function GameDetailsPage({ game, onBack, onDownload, onRemove, isInstalle
           
           {/* About */}
           <section className="space-y-4">
-            <h2 className="text-2xl font-bold tracking-tight border-l-4 border-primary pl-4">About This Game</h2>
+            <h2 className="text-2xl font-bold tracking-tight border-l-4 border-primary pl-4">{t("about_this_game")}</h2>
             {loading ? (
               <div className="space-y-2 animate-pulse">
                 <div className="h-4 bg-muted rounded w-full"></div>
@@ -152,18 +154,18 @@ export function GameDetailsPage({ game, onBack, onDownload, onRemove, isInstalle
                 dangerouslySetInnerHTML={{ __html: details.detailed_description }}
               />
             ) : (
-              <p className="text-muted-foreground">Failed to load description.</p>
+              <p className="text-muted-foreground">{t("failed_load_description")}</p>
             )}
           </section>
 
           {/* System Requirements */}
           {details?.pc_requirements && (
              <section className="space-y-6 pt-6 border-t border-border/50">
-               <h2 className="text-2xl font-bold tracking-tight border-l-4 border-primary pl-4">System Requirements</h2>
+               <h2 className="text-2xl font-bold tracking-tight border-l-4 border-primary pl-4">{t("system_requirements")}</h2>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {details.pc_requirements.minimum && (
                     <div className="bg-card/50 p-6 rounded-2xl border border-border/50">
-                      <h3 className="text-lg font-semibold mb-4 text-primary">Minimum</h3>
+                      <h3 className="text-lg font-semibold mb-4 text-primary">{t("minimum")}</h3>
                       <div 
                         className="text-sm text-muted-foreground space-y-2 [&>ul]:list-disc [&>ul]:pl-4 [&>strong]:text-foreground"
                         dangerouslySetInnerHTML={{ __html: details.pc_requirements.minimum }} 
@@ -172,7 +174,7 @@ export function GameDetailsPage({ game, onBack, onDownload, onRemove, isInstalle
                   )}
                   {details.pc_requirements.recommended && (
                     <div className="bg-card/50 p-6 rounded-2xl border border-border/50">
-                      <h3 className="text-lg font-semibold mb-4 text-primary">Recommended</h3>
+                      <h3 className="text-lg font-semibold mb-4 text-primary">{t("recommended")}</h3>
                       <div 
                         className="text-sm text-muted-foreground space-y-2 [&>ul]:list-disc [&>ul]:pl-4 [&>strong]:text-foreground"
                         dangerouslySetInnerHTML={{ __html: details.pc_requirements.recommended }} 
@@ -189,7 +191,7 @@ export function GameDetailsPage({ game, onBack, onDownload, onRemove, isInstalle
            {/* Media Gallery Grid */}
            {details && (details.movies.length > 0 || details.screenshots.length > 0) && (
              <section className="space-y-4">
-               <h3 className="font-semibold text-lg">Media Gallery</h3>
+               <h3 className="font-semibold text-lg">{t("media_gallery")}</h3>
                <div className="grid grid-cols-2 gap-2 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
                  {details.movies.map((mov, i) => (
                    <div 
@@ -220,15 +222,15 @@ export function GameDetailsPage({ game, onBack, onDownload, onRemove, isInstalle
 
            {/* Info Card */}
            <div className="bg-card p-6 rounded-2xl border space-y-4 shadow-sm">
-             <h3 className="font-semibold text-lg border-b pb-2">Game Info</h3>
+             <h3 className="font-semibold text-lg border-b pb-2">{t("game_info")}</h3>
              <div className="space-y-3 text-sm">
                <div className="flex justify-between items-center">
-                 <span className="text-muted-foreground">App ID</span>
+                 <span className="text-muted-foreground">{t("app_id")}</span>
                  <span className="font-mono bg-muted px-2 py-0.5 rounded text-xs">{game.id}</span>
                </div>
                <div className="flex justify-between items-center">
-                 <span className="text-muted-foreground">Platform</span>
-                 <span>Windows</span>
+                 <span className="text-muted-foreground">{t("platform")}</span>
+                 <span>{t("windows")}</span>
                </div>
                {/* Add more metadata if available */}
              </div>

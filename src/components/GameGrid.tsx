@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { GameInfo } from "@/types";
 import { cn } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
@@ -8,15 +9,39 @@ interface GameGridProps {
   onSelect: (game: GameInfo) => void;
   selectedId?: number;
   onRemove?: (gameId: number) => void;
+  maxRows?: number;
 }
 
-export function GameGrid({ games, onSelect, selectedId, onRemove }: GameGridProps) {
-  if (games.length === 0) return null;
+export function GameGrid({ games, onSelect, selectedId, onRemove, maxRows }: GameGridProps) {
+  const [columns, setColumns] = useState(2);
+
+  useEffect(() => {
+    const getColumns = (width: number) => {
+      if (width >= 1536) return 7;
+      if (width >= 1280) return 6;
+      if (width >= 1024) return 5;
+      if (width >= 768) return 4;
+      return 2;
+    };
+
+    const updateColumns = () => setColumns(getColumns(window.innerWidth));
+    updateColumns();
+    window.addEventListener("resize", updateColumns);
+    return () => window.removeEventListener("resize", updateColumns);
+  }, []);
+
+  const visibleGames = useMemo(() => {
+    if (!maxRows) return games;
+    const limit = columns * maxRows;
+    return games.slice(0, limit);
+  }, [games, maxRows, columns]);
+
+  if (visibleGames.length === 0) return null;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-        {games.map((game) => (
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-6">
+        {visibleGames.map((game) => (
           <div
             key={game.id}
             onClick={() => onSelect(game)}

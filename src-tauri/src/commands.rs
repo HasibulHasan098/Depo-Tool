@@ -1,12 +1,118 @@
-use crate::steam::{search_games as steam_search, check_availability as steam_check, get_featured_games as steam_featured, get_game_details as steam_details, GameInfo, GameDetails};
+use crate::steam::{search_games as steam_search, check_availability as steam_check, get_featured_games as steam_featured, get_game_details as steam_details, get_game_briefs as steam_briefs, GameInfo, GameDetails};
 use crate::download::download_game_files;
 use crate::processing::{process_downloaded_file, restart_steam as steam_restart, restore_backups as processing_restore};
-use crate::utils::detect_steam_path;
+use crate::utils::{detect_steam_path, find_game_install_path_in_library};
 use crate::library::{add_to_library, get_library, remove_from_library};
 use std::path::PathBuf;
 use tauri::Window;
 use reqwest::Client;
 use serde_json::Value;
+use std::process::Command as ProcCommand;
+use std::fs;
+
+use crate::download::download_online_fix_files;
+use crate::processing::install_online_fix_files;
+
+#[tauri::command]
+pub async fn install_online_fix(window: Window, game_id: String, install_dir: String, download_url: String) -> Result<String, String> {
+    // 1. Download the fix
+    let zip_path = download_online_fix_files(&download_url, &window).await?;
+    
+    // 2. Install (extract and overwrite)
+    let target_path = PathBuf::from(install_dir);
+    install_online_fix_files(&zip_path, &target_path)?;
+    
+    // 3. Cleanup
+    let _ = std::fs::remove_file(zip_path);
+    
+    Ok("Success".to_string())
+}
+
+#[tauri::command]
+pub async fn launch_cream_installer() -> Result<String, String> {
+    // Candidate locations: bundled next to exe, in resources folder, dev path provided by user
+    let mut candidates: Vec<PathBuf> = Vec::new();
+
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join("CreamInstaller.exe"));
+            candidates.push(dir.join("resources").join("CreamInstaller.exe"));
+        }
+    }
+    candidates.push(PathBuf::from(r"D:\Downloads\Depo Tool\CreamInstaller.exe"));
+
+    let target = candidates.into_iter().find(|p| p.exists())
+        .ok_or_else(|| "CreamInstaller.exe not found in bundle or dev path".to_string())?;
+
+    let mut child = ProcCommand::new(&target)
+        .spawn()
+        .map_err(|e| format!("Failed to start CreamInstaller: {}", e))?;
+
+    child
+        .wait()
+        .map_err(|e| format!("CreamInstaller wait failed: {}", e))?;
+
+    Ok("Launched".to_string())
+}
+
+#[tauri::command]
+pub async fn launch_sam_picker() -> Result<String, String> {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join("SAM.Picker.exe"));
+            candidates.push(dir.join("resources").join("SAM.Picker.exe"));
+        }
+    }
+    candidates.push(PathBuf::from(r"D:\Downloads\Depo Tool\SAM.Picker.exe"));
+
+    let target = candidates.into_iter().find(|p| p.exists())
+        .ok_or_else(|| "SAM.Picker.exe not found in bundle or dev path".to_string())?;
+
+    let mut child = ProcCommand::new(&target)
+        .current_dir(target.parent().unwrap_or(&target))
+        .spawn()
+        .map_err(|e| format!("Failed to start SAM.Picker: {}", e))?;
+
+    child
+        .wait()
+        .map_err(|e| format!("SAM.Picker wait failed: {}", e))?;
+
+    Ok("Launched".to_string())
+}
+
+#[tauri::command]
+pub async fn launch_cw() -> Result<String, String> {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join("CW").join("CrackWorld Library.exe"));
+            candidates.push(dir.join("resources").join("CW").join("CrackWorld Library.exe"));
+        }
+    }
+    candidates.push(PathBuf::from(r"D:\Downloads\Depo Tool\CW\CrackWorld Library.exe"));
+
+    let target = candidates.into_iter().find(|p| p.exists())
+        .ok_or_else(|| "CrackWorld Library.exe not found in bundle or dev path".to_string())?;
+
+    let mut child = ProcCommand::new(&target)
+        .current_dir(target.parent().unwrap_or(&target))
+        .spawn()
+        .map_err(|e| format!("Failed to start CrackWorld Library: {}", e))?;
+
+    child
+        .wait()
+        .map_err(|e| format!("CrackWorld Library wait failed: {}", e))?;
+
+    Ok("Launched".to_string())
+}
+
+#[tauri::command]
+pub async fn find_game_install_path(app_id: u32) -> Result<Option<String>, String> {
+    Ok(find_game_install_path_in_library(app_id).map(|p| p.to_string_lossy().to_string()))
+}
 
 #[tauri::command]
 pub async fn remove_game_from_library(game_id: u32, steam_path: String) -> Result<(), String> {
@@ -49,6 +155,11 @@ pub async fn remove_game_from_library(game_id: u32, steam_path: String) -> Resul
 #[tauri::command]
 pub async fn search_games(query: String) -> Result<Vec<GameInfo>, String> {
     steam_search(&query).await
+}
+
+#[tauri::command]
+pub async fn get_game_briefs(app_ids: Vec<u32>) -> Result<Vec<GameInfo>, String> {
+    steam_briefs(app_ids).await
 }
 
 #[tauri::command]

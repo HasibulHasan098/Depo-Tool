@@ -31,8 +31,10 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             search_games,
+            get_game_briefs,
             get_featured_games,
             get_game_details,
             get_library_games,
@@ -41,7 +43,12 @@ pub fn run() {
             remove_game_from_library,
             restore_backup,
             get_steam_path,
-            check_for_updates
+            check_for_updates,
+            find_game_install_path,
+            install_online_fix,
+            launch_cream_installer,
+            launch_sam_picker,
+            launch_cw
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

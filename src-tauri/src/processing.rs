@@ -6,6 +6,55 @@ use sysinfo::System;
 use std::process::Command;
 use log::{info, error, warn};
 
+pub fn install_online_fix_files(zip_path: &PathBuf, target_dir: &PathBuf) -> Result<(), String> {
+    info!("Installing online fix from {:?} to {:?}", zip_path, target_dir);
+    
+    let file = fs::File::open(zip_path).map_err(|e| {
+        error!("Failed to open zip file: {}", e);
+        e.to_string()
+    })?;
+    
+    let mut archive = ZipArchive::new(file).map_err(|e| {
+        error!("Failed to read zip archive: {}", e);
+        e.to_string()
+    })?;
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
+        let name = file.name().to_string();
+        
+        // Skip directories if they are just entries, but we need to create them for files
+        if file.is_dir() {
+            continue;
+        }
+
+        let target_path = target_dir.join(&name);
+        
+        // Ensure parent directory exists
+        if let Some(parent) = target_path.parent() {
+            fs::create_dir_all(parent).map_err(|e| {
+                error!("Failed to create directory {:?}: {}", parent, e);
+                e.to_string()
+            })?;
+        }
+
+        // Extract and overwrite
+        info!("Extracting {} to {:?}", name, target_path);
+        let mut outfile = fs::File::create(&target_path).map_err(|e| {
+            error!("Failed to create target file: {}", e);
+            e.to_string()
+        })?;
+        
+        io::copy(&mut file, &mut outfile).map_err(|e| {
+            error!("Failed to write file content: {}", e);
+            e.to_string()
+        })?;
+    }
+
+    info!("Online fix installation completed.");
+    Ok(())
+}
+
 pub fn process_downloaded_file(zip_path: &PathBuf, steam_path: &PathBuf) -> Result<Vec<String>, String> {
     info!("Processing downloaded file: {:?}", zip_path);
     let file = fs::File::open(zip_path).map_err(|e| {

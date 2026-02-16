@@ -17,6 +17,10 @@ import { useTheme } from "@/components/ThemeProvider";
 import { Moon, Sun, Laptop } from "lucide-react";
 
 import { TitleBar } from "./components/TitleBar";
+import { OnlineFixPage } from "./components/OnlineFixPage";
+import { DlcUnlockerPage } from "./components/DLCUnlockerPage";
+import { AchievementsPage } from "./components/AchievementsPage";
+import { GameFixPage } from "./components/GameFixPage";
 
 interface ReleaseInfo {
   version: string;
@@ -56,7 +60,7 @@ function parseRelease(release: any): ReleaseInfo {
   }
 
   const tagName = release.tag_name || "";
-  const version = tagName.replace(/^v/, "") || release.name?.replace(/^v/, "") || "1.0.1";
+  const version = tagName.replace(/^v/, "") || release.name?.replace(/^v/, "") || "1.0.2";
 
   return {
     version,
@@ -71,6 +75,15 @@ function parseRelease(release: any): ReleaseInfo {
 
 function App() {
   const { theme, setTheme } = useTheme();
+  
+  // Set default theme to dark on first load if not set
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("vite-ui-theme");
+    if (!savedTheme) {
+        setTheme("dark");
+    }
+  }, []);
+
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState("home");
   const [activeView, setActiveView] = useState<"list" | "details">("list");
@@ -88,6 +101,7 @@ function App() {
   const [updateStatus, setUpdateStatus] = useState("");
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const [language, setLanguage] = useState(localStorage.getItem("language") || "en");
+  const [featuredGames, setFeaturedGames] = useState<GameInfo[]>([]);
 
   const handleLanguageChange = (lang: string) => {
     setLanguage(lang);
@@ -110,9 +124,10 @@ function App() {
 
     getVersion()
       .then((version) => setCurrentVersion(version))
-      .catch(() => setCurrentVersion("1.0.1"));
+      .catch(() => setCurrentVersion("1.0.2"));
 
     loadLibrary();
+    loadFeatured();
 
     const unlisten = listen<DownloadProgress>("download-progress", (event) => {
       setDownloadProgress(event.payload);
@@ -152,6 +167,18 @@ function App() {
     }
   }
 
+  async function loadFeatured() {
+    try {
+      const games = await invoke<GameInfo[]>("get_featured_games");
+      setFeaturedGames(games.slice(0, 5)); // Keep top 5 for suggestions
+      if (query.length === 0) {
+        setResults(games.slice(0, 5));
+      }
+    } catch (e) {
+      console.error("Failed to load featured", e);
+    }
+  }
+
   const handleRemoveGame = async (gameId: number) => {
     try {
       await invoke("remove_game_from_library", { gameId, steamPath });
@@ -170,11 +197,11 @@ function App() {
       if (query.length > 0) {
         performSearch(query);
       } else {
-        setResults([]);
+        setResults(featuredGames);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, featuredGames]);
 
   // Reset view when tab changes
   useEffect(() => {
@@ -380,18 +407,42 @@ function App() {
              </div>
           )}
 
+          {activeTab === "online-fix" && (
+             <div className="h-full overflow-y-auto scrollbar-hide p-8 space-y-10 pb-24 animate-in fade-in duration-300">
+               <OnlineFixPage />
+             </div>
+          )}
+
+          {activeTab === "dlc" && (
+             <div className="h-full overflow-y-auto scrollbar-hide p-8 pb-24">
+               <DlcUnlockerPage />
+             </div>
+          )}
+
+          {activeTab === "game-fix" && (
+             <div className="h-full overflow-y-auto scrollbar-hide p-8 pb-24">
+               <GameFixPage />
+             </div>
+          )}
+
+          {activeTab === "achievements" && (
+             <div className="h-full overflow-y-auto scrollbar-hide p-8 pb-24">
+               <AchievementsPage />
+             </div>
+          )}
+
           {activeTab === "settings" && (
             <div className="h-full overflow-y-auto scrollbar-hide p-8 space-y-10 pb-24">
                 <div className="max-w-xl mx-auto space-y-8">
                    <div className="space-y-2">
                      <h2 className="text-3xl font-bold tracking-tight">{t("settings")}</h2>
-                     <p className="text-muted-foreground">{t("settings_desc")}</p>
+                     <p className="text-muted-foreground">{t("configure_preferences")}</p>
                    </div>
                    
                    <div className="space-y-4 p-6 border rounded-3xl bg-card">
                      <div className="space-y-2">
                        <h3 className="text-lg font-semibold">{t("appearance")}</h3>
-                       <p className="text-sm text-muted-foreground">{t("appearance_desc")}</p>
+                       <p className="text-sm text-muted-foreground">{t("customize_look")}</p>
                        <div className="flex gap-2 pt-2">
                          <Button 
                            variant={theme === 'light' ? "default" : "outline"} 
@@ -399,7 +450,7 @@ function App() {
                            onClick={() => setTheme('light')}
                            className="gap-2"
                          >
-                           <Sun className="h-4 w-4" /> Light
+                           <Sun className="h-4 w-4" /> {t("light")}
                          </Button>
                          <Button 
                            variant={theme === 'dark' ? "default" : "outline"} 
@@ -407,7 +458,7 @@ function App() {
                            onClick={() => setTheme('dark')}
                            className="gap-2"
                          >
-                           <Moon className="h-4 w-4" /> Dark
+                           <Moon className="h-4 w-4" /> {t("dark")}
                          </Button>
                          <Button 
                            variant={theme === 'system' ? "default" : "outline"} 
@@ -415,7 +466,7 @@ function App() {
                            onClick={() => setTheme('system')}
                            className="gap-2"
                          >
-                           <Laptop className="h-4 w-4" /> System
+                           <Laptop className="h-4 w-4" /> {t("system")}
                          </Button>
                        </div>
                      </div>
@@ -424,7 +475,7 @@ function App() {
                    <div className="space-y-4 p-6 border rounded-3xl bg-card">
                      <div className="space-y-2">
                        <h3 className="text-lg font-semibold">{t("language")}</h3>
-                       <p className="text-sm text-muted-foreground">{t("language_desc")}</p>
+                       <p className="text-sm text-muted-foreground">{t("select_language")}</p>
                        <select
                            value={language}
                            onChange={(e) => handleLanguageChange(e.target.value)}
@@ -442,7 +493,7 @@ function App() {
 
                    <div className="space-y-4 p-6 border rounded-3xl bg-card">
                      <div className="space-y-2">
-                       <label className="text-sm font-medium">{t("steam_path")}</label>
+                       <label className="text-sm font-medium">{t("steam_install_path")}</label>
                        <div className="flex gap-2">
                          <Input value={steamPath} onChange={(e) => setSteamPath(e.target.value)} />
                          <Button variant="outline" onClick={() => invoke("get_steam_path").then((p) => p && setSteamPath(p as string))}>
@@ -462,7 +513,7 @@ function App() {
                         <p className="text-sm text-muted-foreground">{t("current_version")}: v{currentVersion}</p>
                       </div>
                       <Button onClick={checkForUpdates} disabled={checkingUpdates}>
-                        {checkingUpdates ? t("checking") : t("check_updates")}
+                        {checkingUpdates ? t("checking") : t("check_for_updates")}
                       </Button>
                     </div>
                     {updateStatus && (
@@ -474,7 +525,7 @@ function App() {
                           <div className="font-medium">{updateRelease.name}</div>
                           {updateRelease.publishedAt && (
                             <div className="text-muted-foreground">
-                              Published {new Date(updateRelease.publishedAt).toLocaleDateString()}
+                              {t("published")} {new Date(updateRelease.publishedAt).toLocaleDateString()}
                             </div>
                           )}
                         </div>

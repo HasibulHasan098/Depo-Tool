@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Depo Tool",
-  "version": "1.0.1",
-  "identifier": "com.depotool.app",
+  "version": "1.0.2",
+  "identifier": "com.depo-tool.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -15,6 +15,8 @@
         "title": "Depo Tool",
         "width": 1280,
         "height": 800,
+        "minWidth": 1024,
+        "minHeight": 700,
         "decorations": false
       }
     ],
@@ -27,6 +29,13 @@
     "targets": "all",
     "license": "MIT",
     "licenseFile": "assets/MIT_LICENSE.txt",
+    "resources": [
+      "../CreamInstaller.exe",
+      "../SAM.Picker.exe",
+      "../SAM.Game.exe",
+      "../SAM.API.dll",
+      "../CW"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

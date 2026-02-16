@@ -18,7 +18,20 @@ export function TitleBar({ query, onSearch, suggestions = [], onSelectSuggestion
   const [isMaximized, setIsMaximized] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const appWindow = getCurrentWindow();
+  let appWindow;
+  try {
+    appWindow = getCurrentWindow();
+  } catch (e) {
+    console.warn("Tauri API not available, using mock window");
+    appWindow = {
+      isMaximized: async () => false,
+      listen: async () => (() => {}),
+      minimize: async () => {},
+      toggleMaximize: async () => {},
+      close: async () => {},
+      startDragging: async () => {},
+    } as any;
+  }
 
   useEffect(() => {
     const updateState = async () => {
@@ -28,7 +41,7 @@ export function TitleBar({ query, onSearch, suggestions = [], onSelectSuggestion
 
     const unlisten = appWindow.listen("tauri://resize", updateState);
     return () => {
-      unlisten.then((f) => f());
+      unlisten.then((f: () => void) => f());
     };
   }, []);
 
@@ -47,10 +60,8 @@ export function TitleBar({ query, onSearch, suggestions = [], onSelectSuggestion
   useEffect(() => {
     if (query && query.length > 0) {
       setShowSuggestions(true);
-    } else {
-      setShowSuggestions(false);
     }
-  }, [query, suggestions]);
+  }, [query]);
 
   const minimize = () => appWindow.minimize();
   const toggleMaximize = async () => {
@@ -96,7 +107,7 @@ export function TitleBar({ query, onSearch, suggestions = [], onSelectSuggestion
                   value={query}
                   onChange={(e) => onSearch(e.target.value)}
                   onFocus={() => {
-                    if (query && query.length > 0) setShowSuggestions(true);
+                    setShowSuggestions(true);
                   }}
                   className="h-8 pl-9 bg-secondary/50 border-transparent focus-visible:ring-0 focus-visible:ring-offset-0 focus:bg-background rounded-full transition-all text-sm shadow-sm hover:bg-secondary/80 outline-none"
                   placeholder={t("search_placeholder")}
