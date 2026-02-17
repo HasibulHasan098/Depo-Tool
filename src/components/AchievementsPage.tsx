@@ -54,7 +54,12 @@ export function AchievementsPage() {
         await checkStatus();
       }
     } catch (e) {
-      toast.error(installed ? "Failed to launch" : "Failed to install");
+      const message = String(e);
+      if (message.includes("ELEVATION_REQUESTED")) {
+        toast.info(t("admin_required_title"), { description: t("admin_required_desc") });
+      } else {
+        toast.error(installed ? "Failed to launch" : "Failed to install");
+      }
       console.error(e);
     } finally {
       setLoading(false);

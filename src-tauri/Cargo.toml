@@ -1,6 +1,6 @@
 [package]
 name = "depo-tool"
-version = "1.0.2"
+version = "1.0.3"
 description = "A Depo Tool"
 authors = ["you"]
 edition = "2021"
@@ -32,3 +32,4 @@ regex = "1.12.3"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.51"
+windows-sys = { version = "0.59.0", features = ["Win32_Foundation", "Win32_Security", "Win32_System_Threading", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }

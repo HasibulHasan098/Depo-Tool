@@ -1,4 +1,4 @@
-use tauri::{Window, Emitter};
+use tauri::{Emitter, Runtime, Window};
 use reqwest::Client;
 use futures_util::StreamExt;
 use std::fs::File;
@@ -17,7 +17,7 @@ struct DownloadProgress {
     total_bytes: u64,
 }
 
-pub async fn download_online_fix_files(url: &str, window: &Window) -> Result<PathBuf, String> {
+pub async fn download_online_fix_files<R: Runtime>(url: &str, window: &impl Emitter<R>) -> Result<PathBuf, String> {
     info!("Initiating online fix download from: {}", url);
     let client = Client::new();
     

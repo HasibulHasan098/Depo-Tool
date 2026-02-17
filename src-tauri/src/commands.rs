@@ -4,10 +4,26 @@ use crate::processing::{process_downloaded_file, restart_steam as steam_restart,
 use crate::utils::{detect_steam_path, find_game_install_path_in_library};
 use crate::library::{add_to_library, get_library, remove_from_library};
 use std::path::PathBuf;
-use tauri::{Window, Manager};
+use tauri::{Window, WebviewWindow, Manager};
 use reqwest::Client;
 use serde_json::Value;
 use std::process::Command as ProcCommand;
+use std::fs;
+use std::path::Path;
+#[cfg(windows)]
+use std::ffi::OsStr;
+#[cfg(windows)]
+use std::os::windows::ffi::OsStrExt;
+#[cfg(windows)]
+use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+#[cfg(windows)]
+use windows_sys::Win32::Security::{GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY};
+#[cfg(windows)]
+use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+#[cfg(windows)]
+use windows_sys::Win32::UI::Shell::ShellExecuteW;
+#[cfg(windows)]
+use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 
 // Helper to resolve external tools
 fn resolve_external_tool(window: &Window, file: &str) -> Option<PathBuf> {
@@ -41,6 +57,103 @@ fn resolve_external_tool(window: &Window, file: &str) -> Option<PathBuf> {
 use crate::download::download_online_fix_files;
 use crate::processing::install_online_fix_files;
 
+#[cfg(windows)]
+fn to_wide(value: &str) -> Vec<u16> {
+    OsStr::new(value).encode_wide().chain(std::iter::once(0)).collect()
+}
+
+#[cfg(windows)]
+fn is_elevated() -> bool {
+    let mut token: HANDLE = std::ptr::null_mut();
+    unsafe {
+        if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) == 0 {
+            return false;
+        }
+    }
+    let mut elevation = TOKEN_ELEVATION { TokenIsElevated: 0 };
+    let mut size = 0;
+    let result = unsafe {
+        GetTokenInformation(
+            token,
+            TokenElevation,
+            &mut elevation as *mut _ as *mut _,
+            std::mem::size_of::<TOKEN_ELEVATION>() as u32,
+            &mut size,
+        )
+    };
+    unsafe { CloseHandle(token) };
+    result != 0 && elevation.TokenIsElevated != 0
+}
+
+#[cfg(not(windows))]
+fn is_elevated() -> bool {
+    true
+}
+
+#[cfg(windows)]
+fn is_protected_path(path: &Path) -> bool {
+    let lower = path.to_string_lossy().to_lowercase();
+    lower.starts_with(r"c:\program files")
+        || lower.starts_with(r"c:\program files (x86)")
+        || lower.starts_with(r"c:\windows")
+}
+
+#[cfg(windows)]
+fn has_write_access(path: &Path) -> bool {
+    if !path.exists() && fs::create_dir_all(path).is_err() {
+        return false;
+    }
+    let test_path = path.join(".depo_tool_write_test");
+    match fs::OpenOptions::new().create(true).write(true).open(&test_path) {
+        Ok(_) => {
+            let _ = fs::remove_file(test_path);
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+#[cfg(windows)]
+fn relaunch_as_admin(params: &str) -> Result<(), String> {
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let exe_wide = to_wide(exe.to_string_lossy().as_ref());
+    let params_wide = to_wide(params);
+    let verb_wide = to_wide("runas");
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            verb_wide.as_ptr(),
+            exe_wide.as_ptr(),
+            params_wide.as_ptr(),
+            std::ptr::null(),
+            SW_SHOWNORMAL,
+        )
+    };
+    if result as usize <= 32 {
+        Err("Failed to request administrator privileges".to_string())
+    } else {
+        Ok(())
+    }
+}
+
+#[cfg(windows)]
+fn build_admin_params(url: &str, subfolder: &Option<String>) -> String {
+    let mut parts = vec![format!("--admin-install-url {}", quote_arg(url))];
+    if let Some(folder) = subfolder.as_ref() {
+        parts.push(format!("--admin-install-subfolder {}", quote_arg(folder)));
+    }
+    parts.join(" ")
+}
+
+#[cfg(windows)]
+fn quote_arg(value: &str) -> String {
+    if value.contains(' ') || value.contains('"') {
+        format!("\"{}\"", value.replace('"', "\\\""))
+    } else {
+        value.to_string()
+    }
+}
+
 #[tauri::command]
 pub async fn install_online_fix(window: Window, game_id: String, install_dir: String, download_url: String) -> Result<String, String> {
     // 1. Download the fix
@@ -62,10 +175,7 @@ pub async fn check_external_tool_status(window: Window, tool_name: String) -> bo
 }
 
 #[tauri::command]
-pub async fn install_external_tool(window: Window, url: String, subfolder: Option<String>) -> Result<String, String> {
-    // 1. Download
-    let zip_path = download_online_fix_files(&url, &window).await?;
-
+pub async fn install_external_tool(window: WebviewWindow, url: String, subfolder: Option<String>) -> Result<String, String> {
     // 2. Determine Install Path
     let mut install_dir = if let Ok(exe) = std::env::current_exe() {
          exe.parent().unwrap().to_path_buf()
@@ -74,15 +184,24 @@ pub async fn install_external_tool(window: Window, url: String, subfolder: Optio
     };
     
     // If subfolder is provided, append it
-    if let Some(folder) = subfolder {
+    if let Some(folder) = subfolder.as_ref() {
         install_dir = install_dir.join(folder);
-        // Create the directory if it doesn't exist
-        if !install_dir.exists() {
-            std::fs::create_dir_all(&install_dir).map_err(|e| e.to_string())?;
-        }
     }
+
+    #[cfg(windows)]
+    if !is_elevated() && (is_protected_path(&install_dir) || !has_write_access(&install_dir)) {
+        let params = build_admin_params(&url, &subfolder);
+        relaunch_as_admin(&params)?;
+        return Err("ELEVATION_REQUESTED".to_string());
+    }
+
+    // 1. Download
+    let zip_path = download_online_fix_files(&url, &window).await?;
     
     // 3. Extract
+    if !install_dir.exists() {
+        std::fs::create_dir_all(&install_dir).map_err(|e| e.to_string())?;
+    }
     install_online_fix_files(&zip_path, &install_dir)?;
 
     // 4. Cleanup

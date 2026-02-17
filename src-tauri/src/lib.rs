@@ -8,6 +8,7 @@ mod library;
 use commands::*;
 use tauri::Window;
 use log::info;
+use tauri::Manager;
 
 #[tauri::command]
 async fn download_and_install_cmd(window: Window, gameId: String, steamPath: String) -> Result<(), String> {
@@ -22,16 +23,40 @@ async fn download_and_install_cmd(window: Window, gameId: String, steamPath: Str
     commands::download_and_install(window, gameId, steamPath).await.map(|_| ())
 }
 
+fn get_admin_install_request() -> Option<(String, Option<String>)> {
+    let mut args = std::env::args().skip(1);
+    let mut url = None;
+    let mut subfolder = None;
+    while let Some(arg) = args.next() {
+        if arg == "--admin-install-url" {
+            url = args.next();
+        } else if arg == "--admin-install-subfolder" {
+            subfolder = args.next();
+        }
+    }
+    url.map(|u| (u, subfolder))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     env_logger::init();
     
     // Initialize library
     library::init_library();
+    let admin_request = get_admin_install_request();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .setup(move |app| {
+            if let Some((url, subfolder)) = admin_request.clone() {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = tauri::async_runtime::block_on(install_external_tool(window, url, subfolder));
+                    app.handle().exit(0);
+                }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             search_games,
             get_game_briefs,
