@@ -342,6 +342,8 @@ function App() {
         onSearch={setQuery} 
         suggestions={results}
         onSelectSuggestion={handleGameSelect}
+        showUpdateNow={updateAvailable === true}
+        onUpdateNow={downloadUpdate}
       />
       <Toaster position="top-center" />
       
@@ -535,7 +537,7 @@ function App() {
                           </div>
                         )}
                         <div className="flex gap-2">
-                          <Button onClick={downloadUpdate}>{t("download_update")}</Button>
+                          <Button onClick={downloadUpdate}>{t("update_now")}</Button>
                           <Button variant="outline" onClick={openReleasesPage}>
                             {t("view_releases")}
                           </Button>

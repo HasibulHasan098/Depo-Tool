@@ -6,7 +6,8 @@ use crate::library::{add_to_library, get_library, remove_from_library};
 use std::path::PathBuf;
 use tauri::{Window, WebviewWindow, Manager};
 use reqwest::Client;
-use serde_json::Value;
+use serde::Deserialize;
+use serde_json::{json, Value};
 use std::process::Command as ProcCommand;
 use std::fs;
 use std::path::Path;
@@ -373,10 +374,47 @@ pub async fn restore_backup(steam_path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn check_for_updates() -> Result<Option<Value>, String> {
-    let url = "https://api.github.com/repos/HasibulHasan098/Depo-Tool/releases/latest";
+    #[derive(Deserialize)]
+    struct Tag {
+        name: String,
+    }
+
+    fn parse_version(tag: &str) -> Option<Vec<u32>> {
+        let cleaned = tag.trim().trim_start_matches('v');
+        let mut parts = Vec::new();
+        for part in cleaned.split('.') {
+            if part.is_empty() {
+                return None;
+            }
+            match part.parse::<u32>() {
+                Ok(value) => parts.push(value),
+                Err(_) => return None,
+            }
+        }
+        if parts.is_empty() {
+            None
+        } else {
+            Some(parts)
+        }
+    }
+
+    fn compare_versions(a: &[u32], b: &[u32]) -> std::cmp::Ordering {
+        let max_len = std::cmp::max(a.len(), b.len());
+        for i in 0..max_len {
+            let left = *a.get(i).unwrap_or(&0);
+            let right = *b.get(i).unwrap_or(&0);
+            match left.cmp(&right) {
+                std::cmp::Ordering::Equal => continue,
+                other => return other,
+            }
+        }
+        std::cmp::Ordering::Equal
+    }
+
+    let tags_url = "https://api.github.com/repos/HasibulHasan098/Depo-Tool/tags";
     let client = Client::new();
     let response = client
-        .get(url)
+        .get(tags_url)
         .header("User-Agent", "Depo-Tool")
         .header("Accept", "application/vnd.github+json")
         .send()
@@ -391,7 +429,48 @@ pub async fn check_for_updates() -> Result<Option<Value>, String> {
         return Err(format!("GitHub response error: {}", response.status()));
     }
 
-    let release = response.json::<Value>().await.map_err(|e| e.to_string())?;
+    let tags = response.json::<Vec<Tag>>().await.map_err(|e| e.to_string())?;
+    let latest_tag = tags
+        .into_iter()
+        .filter_map(|tag| parse_version(&tag.name).map(|version| (tag.name, version)))
+        .max_by(|(_, a), (_, b)| compare_versions(a, b))
+        .map(|(name, _)| name);
+
+    let latest_tag = match latest_tag {
+        Some(tag) => tag,
+        None => return Ok(None),
+    };
+
+    let release_url = format!(
+        "https://api.github.com/repos/HasibulHasan098/Depo-Tool/releases/tags/{}",
+        latest_tag
+    );
+
+    let release_response = client
+        .get(&release_url)
+        .header("User-Agent", "Depo-Tool")
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if release_response.status().as_u16() == 404 {
+        let fallback = json!({
+            "tag_name": latest_tag,
+            "name": format!("Version {}", latest_tag),
+            "body": "",
+            "published_at": "",
+            "assets": [],
+            "html_url": format!("https://github.com/HasibulHasan098/Depo-Tool/releases/tag/{}", latest_tag)
+        });
+        return Ok(Some(fallback));
+    }
+
+    if !release_response.status().is_success() {
+        return Err(format!("GitHub response error: {}", release_response.status()));
+    }
+
+    let release = release_response.json::<Value>().await.map_err(|e| e.to_string())?;
     Ok(Some(release))
 }
 

@@ -11,9 +11,11 @@ interface TitleBarProps {
   onSearch?: (q: string) => void;
   suggestions?: GameInfo[];
   onSelectSuggestion?: (game: GameInfo) => void;
+  showUpdateNow?: boolean;
+  onUpdateNow?: () => void;
 }
 
-export function TitleBar({ query, onSearch, suggestions = [], onSelectSuggestion }: TitleBarProps) {
+export function TitleBar({ query, onSearch, suggestions = [], onSelectSuggestion, showUpdateNow, onUpdateNow }: TitleBarProps) {
   const { t } = useTranslation();
   const [isMaximized, setIsMaximized] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -164,6 +166,14 @@ export function TitleBar({ query, onSearch, suggestions = [], onSelectSuggestion
             
             {/* Window Controls */}
             <div className="flex items-center gap-1 pl-2">
+                {showUpdateNow && (
+                    <button
+                        onClick={onUpdateNow}
+                        className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold shadow-sm hover:bg-primary/90 transition-colors"
+                    >
+                        {t("update_now")}
+                    </button>
+                )}
                 <button
                     onClick={minimize}
                     className="h-7 w-9 hover:bg-white/10 rounded-md transition-colors flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer"
