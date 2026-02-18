@@ -124,7 +124,7 @@ function App() {
 
     getVersion()
       .then((version) => setCurrentVersion(version))
-      .catch(() => setCurrentVersion("1.0.2"));
+      .catch(() => setCurrentVersion("1.0.4"));
 
     loadLibrary();
     loadFeatured();

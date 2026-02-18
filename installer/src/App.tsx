@@ -220,7 +220,7 @@ function AppContent() {
       <aside className="w-48 bg-secondary/20 border-r border-border/40 flex flex-col pt-10 pb-4 px-2 gap-1 z-10">
         <div className="mb-2 px-2 mt-2">
             <h1 className="text-sm font-bold tracking-tight">Depo Tool</h1>
-            <p className="text-[10px] text-muted-foreground">Installer v1.0.3</p>
+            <p className="text-[10px] text-muted-foreground">Installer v1.0.4</p>
         </div>
         
         <nav className="space-y-0.5">
