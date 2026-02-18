@@ -55,7 +55,7 @@ fn resolve_external_tool(window: &Window, file: &str) -> Option<PathBuf> {
     candidates.into_iter().find(|p| p.exists())
 }
 
-use crate::download::download_online_fix_files;
+use crate::download::{download_online_fix_files, download_online_fix_files_silent};
 use crate::processing::install_online_fix_files;
 
 #[cfg(windows)]
@@ -155,8 +155,25 @@ fn quote_arg(value: &str) -> String {
     }
 }
 
+#[cfg(windows)]
+fn build_admin_params_online_fix(install_dir: &str, download_url: &str) -> String {
+    let mut parts = Vec::new();
+    parts.push(format!("--admin-online-fix-url {}", quote_arg(download_url)));
+    parts.push(format!("--admin-online-fix-dir {}", quote_arg(install_dir)));
+    parts.join(" ")
+}
+
 #[tauri::command]
 pub async fn install_online_fix(window: Window, game_id: String, install_dir: String, download_url: String) -> Result<String, String> {
+    let target_path = PathBuf::from(&install_dir);
+
+    #[cfg(windows)]
+    if !is_elevated() && (is_protected_path(&target_path) || !has_write_access(&target_path)) {
+        let params = build_admin_params_online_fix(&install_dir, &download_url);
+        relaunch_as_admin(&params)?;
+        return Err("ELEVATION_REQUESTED".to_string());
+    }
+
     // 1. Download the fix
     let zip_path = download_online_fix_files(&download_url, &window).await?;
     
@@ -209,6 +226,37 @@ pub async fn install_external_tool(window: WebviewWindow, url: String, subfolder
     let _ = std::fs::remove_file(zip_path);
 
     Ok("Success".to_string())
+}
+
+pub async fn install_external_tool_headless(url: String, subfolder: Option<String>) -> Result<(), String> {
+    let mut install_dir = if let Ok(exe) = std::env::current_exe() {
+         exe.parent().unwrap().to_path_buf()
+    } else {
+         return Err("Could not determine install location".to_string());
+    };
+    
+    if let Some(folder) = subfolder.as_ref() {
+        install_dir = install_dir.join(folder);
+    }
+
+    let zip_path = download_online_fix_files_silent(&url).await?;
+    
+    if !install_dir.exists() {
+        std::fs::create_dir_all(&install_dir).map_err(|e| e.to_string())?;
+    }
+    install_online_fix_files(&zip_path, &install_dir)?;
+
+    let _ = std::fs::remove_file(zip_path);
+
+    Ok(())
+}
+
+pub async fn install_online_fix_headless(install_dir: String, download_url: String) -> Result<(), String> {
+    let target_path = PathBuf::from(install_dir);
+    let zip_path = download_online_fix_files_silent(&download_url).await?;
+    install_online_fix_files(&zip_path, &target_path)?;
+    let _ = std::fs::remove_file(zip_path);
+    Ok(())
 }
 
 #[tauri::command]

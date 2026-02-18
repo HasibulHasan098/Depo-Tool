@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Folder, Search, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import onlineGamesData from "@/data/online-games.json";
 import { toast } from "sonner";
-import { GameInfo } from "@/types";
+import { DownloadProgress, GameInfo } from "@/types";
 import { useTranslation } from "react-i18next";
 
 interface OnlineGame {
@@ -27,7 +27,7 @@ export function OnlineFixPage() {
   const [metadata, setMetadata] = useState<Record<number, { name: string; thumbnail: string }>>({});
   const [searchIds, setSearchIds] = useState<number[] | null>(null);
   const [installingId, setInstallingId] = useState<number | null>(null);
-  const [installProgress, setInstallProgress] = useState(0);
+  const [installProgress, setInstallProgress] = useState<DownloadProgress | null>(null);
 
   useEffect(() => {
     // Force a reload if we see many failures or on explicit user action?
@@ -133,8 +133,13 @@ export function OnlineFixPage() {
     if (installingId !== null) {
       unlisten = listen<any>("download-progress", (event) => {
         const payload = event.payload || {};
-        const pct = typeof payload.percentage === "number" ? payload.percentage : 0;
-        setInstallProgress(pct);
+        setInstallProgress({
+          percentage: typeof payload.percentage === "number" ? payload.percentage : 0,
+          speed_mbps: typeof payload.speed_mbps === "number" ? payload.speed_mbps : 0,
+          time_remaining_sec: typeof payload.time_remaining_sec === "number" ? payload.time_remaining_sec : 0,
+          downloaded_bytes: typeof payload.downloaded_bytes === "number" ? payload.downloaded_bytes : 0,
+          total_bytes: typeof payload.total_bytes === "number" ? payload.total_bytes : 0,
+        });
       });
     }
     return () => {
@@ -194,7 +199,7 @@ export function OnlineFixPage() {
       
       const toastId = toast.loading(`Installing Online Fix for Game ${game.appid}...`);
       setInstallingId(game.appid);
-      setInstallProgress(0);
+      setInstallProgress(null);
       
       try {
           // Use the link from the JSON data
@@ -205,8 +210,12 @@ export function OnlineFixPage() {
           });
           toast.success("Online Fix installed successfully!", { id: toastId });
       } catch (e) {
-          console.error("Installation failed", e);
-          toast.error(`Installation failed: ${e}`, { id: toastId });
+          if (String(e) === "ELEVATION_REQUESTED") {
+              toast.info(t("admin_required_title"), { description: t("admin_required_desc"), id: toastId });
+          } else {
+              console.error("Installation failed", e);
+              toast.error(`Installation failed: ${e}`, { id: toastId });
+          }
       } finally {
           setInstallingId(null);
       }
@@ -304,7 +313,7 @@ export function OnlineFixPage() {
                             disabled
                           >
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            {t("installing_percent", { percent: installProgress.toFixed(0) })}
+                            {t("installing_percent", { percent: (installProgress?.percentage ?? 0).toFixed(0) })}
                           </Button>
                         ) : (
                           <Button 
@@ -315,6 +324,11 @@ export function OnlineFixPage() {
                           </Button>
                         )}
                     </div>
+                    {installingId === game.appid && installProgress && (
+                      <div className="text-xs text-muted-foreground">
+                        {t("speed_label")}: {installProgress.speed_mbps.toFixed(2)} MB/s · {t("remaining_label")}: {installProgress.time_remaining_sec > 60 ? `${Math.ceil(installProgress.time_remaining_sec / 60)} ${t("minutes_short")}` : `${installProgress.time_remaining_sec} ${t("seconds_short")}`}
+                      </div>
+                    )}
                 </div>
             );
             })}

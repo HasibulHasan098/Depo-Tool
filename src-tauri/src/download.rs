@@ -91,6 +91,44 @@ pub async fn download_online_fix_files<R: Runtime>(url: &str, window: &impl Emit
     Ok(file_path)
 }
 
+pub async fn download_online_fix_files_silent(url: &str) -> Result<PathBuf, String> {
+    info!("Initiating online fix download from: {}", url);
+    let client = Client::new();
+    
+    let res = client.get(url).send().await.map_err(|e| {
+        error!("Failed to start download: {}", e);
+        e.to_string()
+    })?;
+    
+    if !res.status().is_success() {
+        return Err(format!("Download failed with status: {}", res.status()));
+    }
+
+    let temp_dir = std::env::temp_dir();
+    let file_path = temp_dir.join(format!("online_fix_{}.zip", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis()));
+    
+    let mut file = File::create(&file_path).map_err(|e| {
+        error!("Failed to create file: {}", e);
+        e.to_string()
+    })?;
+
+    let mut stream = res.bytes_stream();
+
+    while let Some(item) = stream.next().await {
+        let chunk = item.map_err(|e| {
+            error!("Download interrupted: {}", e);
+            e.to_string()
+        })?;
+        file.write_all(&chunk).map_err(|e| {
+            error!("File write error: {}", e);
+            e.to_string()
+        })?;
+    }
+    
+    info!("Online fix download completed");
+    Ok(file_path)
+}
+
 pub async fn download_game_files(game_id: &str, window: &Window) -> Result<PathBuf, String> {
     info!("Initiating download for game ID: {}", game_id);
     let client = Client::new();
