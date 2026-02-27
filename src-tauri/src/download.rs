@@ -134,6 +134,7 @@ pub async fn download_game_files(game_id: &str, window: &Window) -> Result<PathB
     let client = Client::new();
     let url1 = format!("https://api.luagen.revobd.club/{}.zip", game_id);
     let url2 = format!("https://codeload.github.com/SteamAutoCracks/ManifestHub/zip/refs/heads/{}", game_id);
+    let url3_api = format!("https://kernelos.org/games/download.php?gen=depotool&id={}", game_id);
 
     let mut target_url = String::new();
 
@@ -153,6 +154,21 @@ pub async fn download_game_files(game_id: &str, window: &Window) -> Result<PathB
             if resp.status().is_success() {
                 target_url = url2;
                 info!("Source 2 available.");
+            }
+        }
+    }
+
+    // Check URL 3 (Lua server) if 1 and 2 failed
+    if target_url.is_empty() {
+        debug!("Checking source 3: {}", url3_api);
+        if let Ok(resp) = client.get(&url3_api).send().await {
+            if resp.status().is_success() {
+                if let Ok(json) = resp.json::<serde_json::Value>().await {
+                    if let Some(url_path) = json.get("url").and_then(|v| v.as_str()) {
+                        target_url = format!("https://kernelos.org{}", url_path);
+                        info!("Source 3 available.");
+                    }
+                }
             }
         }
     }

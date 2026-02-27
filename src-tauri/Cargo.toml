@@ -1,6 +1,6 @@
 [package]
 name = "depo-tool"
-version = "1.0.4"
+version = "1.0.5"
 description = "A Depo Tool"
 authors = ["you"]
 edition = "2021"

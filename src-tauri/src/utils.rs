@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use log::{info, error};
 use regex::Regex;
 use std::fs;
@@ -93,4 +94,62 @@ pub fn find_game_install_path_in_library(app_id: u32) -> Option<PathBuf> {
         }
     }
     None
+}
+
+fn parse_game_id_from_stem(stem: &str) -> Option<u32> {
+    let re = Regex::new(r"^(\d+)$").ok()?;
+    let caps = re.captures(stem)?;
+    let value = caps.get(1)?.as_str();
+    value.parse::<u32>().ok()
+}
+
+fn parse_game_id_from_manifest_stem(stem: &str) -> Option<u32> {
+    let re = Regex::new(r"^(\d+)").ok()?;
+    let caps = re.captures(stem)?;
+    let value = caps.get(1)?.as_str();
+    value.parse::<u32>().ok()
+}
+
+pub fn collect_installed_game_files(steam_path: &Path) -> HashMap<u32, Vec<PathBuf>> {
+    let mut result: HashMap<u32, Vec<PathBuf>> = HashMap::new();
+    let stplugin_dir = steam_path.join("config").join("stplug-in");
+    let depotcache_dir = steam_path.join("config").join("depotcache");
+
+    if let Ok(entries) = fs::read_dir(&stplugin_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+            if ext != "lua" {
+                continue;
+            }
+            let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+            if let Some(app_id) = parse_game_id_from_stem(stem) {
+                result.entry(app_id).or_default().push(path);
+            }
+        }
+    }
+
+    if let Ok(entries) = fs::read_dir(&depotcache_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+            if ext != "manifest" {
+                continue;
+            }
+            let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+            if let Some(app_id) = parse_game_id_from_manifest_stem(stem) {
+                if result.contains_key(&app_id) {
+                    result.entry(app_id).or_default().push(path);
+                }
+            }
+        }
+    }
+
+    result
 }

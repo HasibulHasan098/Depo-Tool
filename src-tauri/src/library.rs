@@ -90,3 +90,9 @@ pub fn remove_from_library(game_id: u32) {
 pub fn get_library() -> Vec<GameInfo> {
     LIBRARY_CACHE.lock().unwrap().clone()
 }
+
+pub fn set_library(games: Vec<GameInfo>) {
+    let mut cache = LIBRARY_CACHE.lock().unwrap();
+    *cache = games;
+    save_library(&cache);
+}

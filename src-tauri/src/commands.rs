@@ -1,8 +1,8 @@
 use crate::steam::{search_games as steam_search, check_availability as steam_check, get_featured_games as steam_featured, get_game_details as steam_details, get_game_briefs as steam_briefs, GameInfo, GameDetails};
 use crate::download::download_game_files;
 use crate::processing::{process_downloaded_file, restart_steam as steam_restart, restore_backups as processing_restore};
-use crate::utils::{detect_steam_path, find_game_install_path_in_library};
-use crate::library::{add_to_library, get_library, remove_from_library};
+use crate::utils::{detect_steam_path, find_game_install_path_in_library, collect_installed_game_files};
+use crate::library::{add_to_library, get_library, remove_from_library, set_library};
 use std::path::PathBuf;
 use tauri::{Window, WebviewWindow, Manager};
 use reqwest::Client;
@@ -11,6 +11,8 @@ use serde_json::{json, Value};
 use std::process::Command as ProcCommand;
 use std::fs;
 use std::path::Path;
+use std::collections::{HashMap, HashSet};
+use regex::Regex;
 #[cfg(windows)]
 use std::ffi::OsStr;
 #[cfg(windows)]
@@ -366,16 +368,40 @@ pub async fn remove_game_from_library(game_id: u32, steam_path: String) -> Resul
     // 2. Remove from JSON library
     remove_from_library(game_id);
 
-    // 3. Fallback cleanup (Legacy or if installed_files empty)
+    // 3. Cleanup Lua and manifest files by game id
     let root = PathBuf::from(&steam_path);
-    let lua_path = root.join("config").join("stplug-in").join(format!("{}.lua", game_id));
-    if lua_path.exists() {
-        let _ = std::fs::remove_file(lua_path);
+    let stplugin_dir = root.join("config").join("stplug-in");
+    let depotcache_dir = root.join("config").join("depotcache");
+
+    let lua_pattern = Regex::new(&format!(r"^{}(?:_\d+)?\.lua$", game_id)).map_err(|e| e.to_string())?;
+    if let Ok(entries) = std::fs::read_dir(stplugin_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            if let Some(name) = path.file_name().and_then(|s| s.to_str()) {
+                if lua_pattern.is_match(name) {
+                    let _ = std::fs::remove_file(path);
+                }
+            }
+        }
     }
-    
-    // We can't easily guess manifest name without ID, but usually it's in depotcache/manifests. 
-    // Without specific file tracking, we can't safely delete manifests as they have random IDs.
-    // The installed_files tracking solves this.
+
+    let manifest_pattern = Regex::new(&format!(r"^{}(?:_\d+)?\.manifest$", game_id)).map_err(|e| e.to_string())?;
+    if let Ok(entries) = std::fs::read_dir(depotcache_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            if let Some(name) = path.file_name().and_then(|s| s.to_str()) {
+                if manifest_pattern.is_match(name) {
+                    let _ = std::fs::remove_file(path);
+                }
+            }
+        }
+    }
 
     Ok(())
 }
@@ -402,7 +428,70 @@ pub async fn get_game_details(game_id: u32) -> Result<GameDetails, String> {
 
 #[tauri::command]
 pub async fn get_library_games() -> Vec<GameInfo> {
-    get_library()
+    let library = get_library();
+    let steam_path = match detect_steam_path() {
+        Some(path) => path,
+        None => return library,
+    };
+
+    let steam_root = PathBuf::from(&steam_path);
+    let detected = collect_installed_game_files(&steam_root);
+    if detected.is_empty() {
+        return library;
+    }
+
+    let mut by_id: HashMap<u32, GameInfo> = library.into_iter().map(|g| (g.id, g)).collect();
+    let mut detected_files: HashMap<u32, Vec<String>> = HashMap::new();
+    let mut missing_ids: Vec<u32> = Vec::new();
+
+    for (id, files) in detected {
+        let rel_files: Vec<String> = files
+            .iter()
+            .filter_map(|p| p.strip_prefix(&steam_root).ok().map(|r| r.to_string_lossy().to_string()))
+            .collect();
+
+        if let Some(existing) = by_id.get_mut(&id) {
+            let mut set: HashSet<String> = existing.installed_files.clone().into_iter().collect();
+            for file in rel_files {
+                set.insert(file);
+            }
+            existing.installed_files = set.into_iter().collect();
+        } else {
+            detected_files.insert(id, rel_files);
+            missing_ids.push(id);
+        }
+    }
+
+    if !missing_ids.is_empty() {
+        if let Ok(briefs) = steam_briefs(missing_ids.clone()).await {
+            for mut game in briefs {
+                if let Some(files) = detected_files.remove(&game.id) {
+                    game.installed_files = files;
+                }
+                by_id.insert(game.id, game);
+            }
+        }
+
+        for id in missing_ids {
+            if by_id.contains_key(&id) {
+                continue;
+            }
+            let installed_files = detected_files.remove(&id).unwrap_or_default();
+            by_id.insert(id, GameInfo {
+                id,
+                name: format!("App {}", id),
+                thumbnail: format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/header.jpg", id),
+                header_image: format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/header.jpg", id),
+                library_image: format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900.jpg", id),
+                library_hero: format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_hero.jpg", id),
+                installed_files,
+            });
+        }
+    }
+
+    let merged: Vec<GameInfo> = by_id.into_values().collect();
+    set_library(merged.clone());
+    merged
 }
 
 #[tauri::command]
