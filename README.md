@@ -111,15 +111,6 @@
 
 ---
 
-## 🎨 Screenshots
-
-<div align="center">
-  <p>
-    <em>🖼️ Screenshots coming soon!</em>
-  </p>
-</div>
-
----
 
 ## 🚀 Quick Start
 
