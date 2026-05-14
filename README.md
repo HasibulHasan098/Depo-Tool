@@ -121,8 +121,6 @@
 | Platform | Download | Status |
 |----------|----------|---------|
 | 🪟 **Windows** | [Latest Release](https://github.com/HasibulHasan098/Depo-Tool/releases/latest) | ✅ Supported |
-| 🐧 **Linux** | Coming Soon | 🚧 In Development |
-| 🍎 **macOS** | Coming Soon | 🚧 Planned |
 
 </div>
 
